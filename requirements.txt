@@ -1,0 +1,13 @@
+# Core dependencies for RemoveBG BiRefNet application
+
+# UI Framework - PyQt6
+PyQt6==6.10.2
+qasync==0.28.0
+
+# ONNX Runtime for model inference (DirectML for Windows GPU support)
+onnxruntime-directml==1.23.0
+
+# Image processing
+Pillow>=10.0.0
+opencv-python>=4.8.0
+numpy>=2.0.0
