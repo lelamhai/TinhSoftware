@@ -28,7 +28,8 @@ class MainWindow(QMainWindow):
         self.input_image_path: Optional[Path] = None
         self.output_image_path: Optional[Path] = None
         self.background_image_path: Optional[Path] = None
-        self.bg_color = (255, 255, 255)  # Default white background
+        self.bg_color = None  # None = transparent, tuple = color
+        self.transparent_result = None  # Store transparent RGBA result for compositing
         
         self.setWindowTitle("RemoveBG Desktop - BiRefNet")
         self.setGeometry(100, 100, 1400, 900)
@@ -230,76 +231,30 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(advanced_layout)
         
-        # Background replacement options
-        bg_group = QGroupBox("Background Replacement (Optional)")
-        bg_layout = QVBoxLayout()
+        # Background preview color (Optional)
+        bg_group = QGroupBox("Background Preview Color (Optional)")
+        bg_layout = QHBoxLayout()
         
-        # Background mode selection
-        mode_layout = QHBoxLayout()
-        mode_layout.addWidget(QLabel("Mode:"))
-        self.bg_mode_group = QButtonGroup()
-        self.radio_bg_none = QRadioButton("Transparent")
-        self.radio_bg_color = QRadioButton("Solid Color")
-        self.radio_bg_image = QRadioButton("Image")
-        self.radio_bg_blur = QRadioButton("Blur")
-        
-        self.bg_mode_group.addButton(self.radio_bg_none, 0)
-        self.bg_mode_group.addButton(self.radio_bg_color, 1)
-        self.bg_mode_group.addButton(self.radio_bg_image, 2)
-        self.bg_mode_group.addButton(self.radio_bg_blur, 3)
-        
-        self.radio_bg_none.setChecked(True)
-        
-        mode_layout.addWidget(self.radio_bg_none)
-        mode_layout.addWidget(self.radio_bg_color)
-        mode_layout.addWidget(self.radio_bg_image)
-        mode_layout.addWidget(self.radio_bg_blur)
-        mode_layout.addStretch()
-        bg_layout.addLayout(mode_layout)
-        
-        # Color picker
-        color_layout = QHBoxLayout()
-        color_layout.addWidget(QLabel("Color:"))
+        bg_layout.addWidget(QLabel("Preview with color:"))
         self.btn_pick_color = QPushButton("Pick Color")
         self.btn_pick_color.clicked.connect(self._on_pick_color)
         self.btn_pick_color.setEnabled(False)
         self.lbl_color_preview = QLabel("")
         self.lbl_color_preview.setFixedSize(50, 25)
-        self.lbl_color_preview.setStyleSheet("background-color: #FFFFFF; border: 1px solid #000;")
-        self.bg_color = (255, 255, 255)
-        color_layout.addWidget(self.btn_pick_color)
-        color_layout.addWidget(self.lbl_color_preview)
+        self.lbl_color_preview.setStyleSheet("background-color: transparent; border: 1px solid #000;")
+        self.bg_color = None  # None = transparent, tuple = color
+        bg_layout.addWidget(self.btn_pick_color)
+        bg_layout.addWidget(self.lbl_color_preview)
         
-        # Image picker
-        color_layout.addWidget(QLabel("  Image:"))
-        self.btn_pick_bg_image = QPushButton("Browse...")
-        self.btn_pick_bg_image.clicked.connect(self._on_pick_bg_image)
-        self.btn_pick_bg_image.setEnabled(False)
-        self.lbl_bg_image = QLabel("No image selected")
-        color_layout.addWidget(self.btn_pick_bg_image)
-        color_layout.addWidget(self.lbl_bg_image)
+        self.btn_clear_color = QPushButton("Clear (Transparent)")
+        self.btn_clear_color.clicked.connect(self._on_clear_color)
+        self.btn_clear_color.setEnabled(False)
+        bg_layout.addWidget(self.btn_clear_color)
         
-        # Blur strength
-        color_layout.addWidget(QLabel("  Blur:"))
-        self.slider_blur = QSlider(Qt.Orientation.Horizontal)
-        self.slider_blur.setMinimum(11)
-        self.slider_blur.setMaximum(101)
-        self.slider_blur.setValue(51)
-        self.slider_blur.setSingleStep(2)
-        self.slider_blur.setEnabled(False)
-        self.lbl_blur = QLabel("51")
-        self.slider_blur.valueChanged.connect(lambda v: self.lbl_blur.setText(str(v if v % 2 == 1 else v + 1)))
-        color_layout.addWidget(self.slider_blur)
-        color_layout.addWidget(self.lbl_blur)
-        
-        color_layout.addStretch()
-        bg_layout.addLayout(color_layout)
+        bg_layout.addStretch()
         
         bg_group.setLayout(bg_layout)
         layout.addWidget(bg_group)
-        
-        # Connect mode change
-        self.bg_mode_group.buttonClicked.connect(self._on_bg_mode_changed)
         
         # Processing params
         params_layout = QHBoxLayout()
@@ -385,71 +340,25 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(100, lambda: asyncio.create_task(self._process_image()))
     
     async def _process_image(self):
-        """Process image asynchronously."""
+        """Process image asynchronously - Always create transparent PNG."""
         try:
-            # Check background mode
-            bg_mode = self.bg_mode_group.checkedId()
+            # Always remove background to transparent
+            result = await self.view_model.remove_background(self.input_image_path)
             
-            if bg_mode == 0:
-                # Transparent background (default)
-                result = await self.view_model.remove_background(self.input_image_path)
-            else:
-                # Background replacement
-                from src.application.use_cases.replace_background_use_case import ReplaceBackgroundUseCase
-                
-                replace_use_case = ReplaceBackgroundUseCase(
-                    engine=self.view_model.use_case.engine,
-                    image_io=self.view_model.use_case.image_io,
-                    settings=self.view_model.settings
-                )
-                
-                if bg_mode == 1:
-                    # Solid color
-                    print(f"🎨 Applying solid color: {self.bg_color}")
-                    result = await replace_use_case.execute_with_color(
-                        self.input_image_path,
-                        self.bg_color
-                    )
-                    print(f"✅ Result: RGBA, shape: {result.output.data.shape}")
-                elif bg_mode == 2:
-                    # Image background
-                    if not self.background_image_path:
-                        QMessageBox.warning(
-                            self,
-                            "No Background Image",
-                            "Please select a background image first."
-                        )
-                        self.btn_remove.setEnabled(True)
-                        return
-                    
-                    result = await replace_use_case.execute_with_image(
-                        self.input_image_path,
-                        self.background_image_path
-                    )
-                else:
-                    # Blur background
-                    blur_value = self.slider_blur.value()
-                    if blur_value % 2 == 0:
-                        blur_value += 1
-                    result = await replace_use_case.execute_with_blur(
-                        self.input_image_path,
-                        blur_strength=blur_value
-                    )
+            # Store transparent result for real-time compositing
+            self.transparent_result = result.output.data.copy()
             
             # Display output
             self.output_image_path = self.input_image_path.parent / f"{self.input_image_path.stem}_nobg.png"
             
-            # Use preview widget to display
-            # Only use checkerboard for transparent mode (bg_mode == 0)
-            use_checkerboard = self.chk_checkerboard.isChecked() and bg_mode == 0
-            self.preview_output.set_image_from_array(
-                result.output.data,
-                use_checkerboard=use_checkerboard
-            )
+            # Display with current background color (or transparent)
+            self._update_preview_with_background()
             self.preview_output.fit_to_view()
             
             self.btn_save.setEnabled(True)
             self.btn_save_mask.setEnabled(True)
+            self.btn_pick_color.setEnabled(True)
+            self.btn_clear_color.setEnabled(True)
             
             crop_info = ""
             if hasattr(result, 'crop_bounds') and result.crop_bounds:
@@ -726,23 +635,18 @@ class MainWindow(QMainWindow):
         self.label_feather.setText(f"{value} px")
         self.view_model.settings.feather_pixels = value
     
-    def _on_bg_mode_changed(self):
-        """Handle background mode change."""
-        # Enable/disable relevant controls
-        mode = self.bg_mode_group.checkedId()
-        self.btn_pick_color.setEnabled(mode == 1)  # Color mode
-        self.btn_pick_bg_image.setEnabled(mode == 2)  # Image mode
-        self.slider_blur.setEnabled(mode == 3)  # Blur mode
-    
     def _on_pick_color(self):
-        """Handle pick color button."""
+        """Handle pick color button - Update preview real-time."""
         from PyQt6.QtWidgets import QColorDialog
         from PyQt6.QtGui import QColor
         
+        # Get initial color
+        initial_color = QColor(*self.bg_color) if self.bg_color else QColor(255, 255, 255)
+        
         color = QColorDialog.getColor(
-            QColor(*self.bg_color),
+            initial_color,
             self,
-            "Select Background Color"
+            "Select Background Preview Color"
         )
         
         if color.isValid():
@@ -751,19 +655,51 @@ class MainWindow(QMainWindow):
                 f"background-color: rgb({color.red()}, {color.green()}, {color.blue()}); "
                 f"border: 1px solid #000;"
             )
+            
+            # Update preview with new color (real-time)
+            if hasattr(self, 'transparent_result'):
+                self._update_preview_with_background()
     
-    def _on_pick_bg_image(self):
-        """Handle pick background image button."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Background Image",
-            "",
-            "Images (*.jpg *.jpeg *.png *.webp *.bmp)"
-        )
+    def _on_clear_color(self):
+        """Clear background color - Show transparent."""
+        self.bg_color = None
+        self.lbl_color_preview.setStyleSheet("background-color: transparent; border: 1px solid #000;")
         
-        if file_path:
-            self.background_image_path = Path(file_path)
-            self.lbl_bg_image.setText(Path(file_path).name)
+        # Update preview to transparent
+        if hasattr(self, 'transparent_result'):
+            self._update_preview_with_background()
+    
+    def _update_preview_with_background(self):
+        """Update preview with current background color or transparent."""
+        import numpy as np
+        
+        if not hasattr(self, 'transparent_result'):
+            return
+        
+        rgba = self.transparent_result.copy()
+        
+        if self.bg_color is not None:
+            # Composite with solid color background
+            rgb = rgba[:, :, :3].astype(np.float32)
+            alpha = rgba[:, :, 3:4].astype(np.float32) / 255.0
+            
+            # Create background with color
+            bg_color = np.array(self.bg_color, dtype=np.float32)
+            background = np.full_like(rgb, bg_color)
+            
+            # Composite: foreground * alpha + background * (1 - alpha)
+            result_rgb = rgb * alpha + background * (1 - alpha)
+            result_rgb = np.clip(result_rgb, 0, 255).astype(np.uint8)
+            
+            # Create opaque RGBA
+            result = np.dstack([result_rgb, np.full((rgba.shape[0], rgba.shape[1]), 255, dtype=np.uint8)])
+            
+            # Display without checkerboard (solid background)
+            self.preview_output.set_image_from_array(result, use_checkerboard=False)
+        else:
+            # Display transparent with checkerboard
+            use_checkerboard = self.chk_checkerboard.isChecked()
+            self.preview_output.set_image_from_array(rgba, use_checkerboard=use_checkerboard)
     
     def _on_save_mask(self):
         """Handle save mask button."""
