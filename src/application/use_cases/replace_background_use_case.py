@@ -72,7 +72,8 @@ class ReplaceBackgroundUseCase:
         output = BackgroundReplacer.replace_with_color(
             image_input,
             processed_mask,
-            color
+            color,
+            original_path=image_path
         )
         
         # Step 5: Auto-crop if enabled
@@ -120,7 +121,8 @@ class ReplaceBackgroundUseCase:
         output = BackgroundReplacer.replace_with_image(
             image_input,
             processed_mask,
-            background_input
+            background_input,
+            original_path=image_path
         )
         
         # Step 5: Auto-crop if enabled
@@ -167,7 +169,8 @@ class ReplaceBackgroundUseCase:
         output = BackgroundReplacer.replace_with_blur(
             image_input,
             processed_mask,
-            blur_strength
+            blur_strength,
+            original_path=image_path
         )
         
         # Step 5: Auto-crop if enabled

@@ -166,6 +166,7 @@ class MainWindow(QMainWindow):
         self.txt_model.setReadOnly(True)
         model_layout.addWidget(self.txt_model)
         self.btn_browse_model = QPushButton("Browse...")
+        self.btn_browse_model.clicked.connect(self._on_browse_model)
         model_layout.addWidget(self.btn_browse_model)
         layout.addLayout(model_layout)
         
@@ -180,6 +181,9 @@ class MainWindow(QMainWindow):
         self.device_group.addButton(self.radio_cpu, 0)
         self.device_group.addButton(self.radio_cuda, 1)
         self.device_group.addButton(self.radio_dml, 2)
+        
+        # Connect device change handler
+        self.device_group.buttonClicked.connect(self._on_device_changed)
         
         # Auto-detect available providers
         provider_info = ProviderManager.get_provider_info()
@@ -401,10 +405,12 @@ class MainWindow(QMainWindow):
                 
                 if bg_mode == 1:
                     # Solid color
+                    print(f"🎨 Applying solid color: {self.bg_color}")
                     result = await replace_use_case.execute_with_color(
                         self.input_image_path,
                         self.bg_color
                     )
+                    print(f"✅ Result: RGBA, shape: {result.output.data.shape}")
                 elif bg_mode == 2:
                     # Image background
                     if not self.background_image_path:
@@ -433,8 +439,9 @@ class MainWindow(QMainWindow):
             # Display output
             self.output_image_path = self.input_image_path.parent / f"{self.input_image_path.stem}_nobg.png"
             
-            # Use preview widget to display with checkerboard
-            use_checkerboard = self.chk_checkerboard.isChecked()
+            # Use preview widget to display
+            # Only use checkerboard for transparent mode (bg_mode == 0)
+            use_checkerboard = self.chk_checkerboard.isChecked() and bg_mode == 0
             self.preview_output.set_image_from_array(
                 result.output.data,
                 use_checkerboard=use_checkerboard
@@ -519,6 +526,48 @@ class MainWindow(QMainWindow):
     def _on_save_folder_changed(self, text: str):
         """Handle save folder text change."""
         self.view_model.settings.default_save_folder = text
+    
+    def _on_browse_model(self):
+        """Handle browse model button."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select ONNX Model",
+            str(self.view_model.settings.model_path.parent),
+            "ONNX Models (*.onnx)"
+        )
+        
+        if file_path:
+            self.view_model.settings.model_path = Path(file_path)
+            self.txt_model.setText(str(file_path))
+            self.status_bar.showMessage(f"Model changed: {file_path} (Restart required)")
+            
+            QMessageBox.information(
+                self,
+                "Model Changed",
+                "Model path updated successfully!\n\n"
+                "Please restart the application for changes to take effect."
+            )
+    
+    def _on_device_changed(self):
+        """Handle device selection change."""
+        device_id = self.device_group.checkedId()
+        
+        if device_id == 0:
+            provider = "CPUExecutionProvider"
+        elif device_id == 1:
+            provider = "CUDAExecutionProvider"
+        else:
+            provider = "DmlExecutionProvider"
+        
+        self.view_model.settings.execution_provider = provider
+        self.status_bar.showMessage(f"Device changed to: {provider} (Restart required)")
+        
+        QMessageBox.information(
+            self,
+            "Device Changed",
+            f"Execution provider set to: {provider}\n\n"
+            "Please restart the application for changes to take effect."
+        )
     
     def _on_browse_save_folder(self):
         """Handle browse save folder button."""
@@ -798,7 +847,7 @@ class MainWindow(QMainWindow):
                     self,
                     "Mask Exported",
                     f"Mask exported successfully!\n\n"
-                    f"Format: {result.format}\n"
+                    f"Format: RGBA\n"
                     f"Time: {result.processing_time_ms:.0f}ms\n"
                     f"File: {file_path}"
                 )

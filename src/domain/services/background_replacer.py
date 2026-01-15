@@ -15,7 +15,8 @@ class BackgroundReplacer:
     def replace_with_color(
         original: ImageInput,
         mask: Mask,
-        color: Tuple[int, int, int]
+        color: Tuple[int, int, int],
+        original_path: Path = None
     ) -> ImageOutput:
         """
         Replace background with solid color.
@@ -24,6 +25,7 @@ class BackgroundReplacer:
             original: Original RGB image
             mask: Foreground mask (0-1, float)
             color: RGB color tuple (0-255)
+            original_path: Path to original image file
             
         Returns:
             ImageOutput with replaced background
@@ -61,14 +63,15 @@ class BackgroundReplacer:
             data=rgba,
             width=original.width,
             height=original.height,
-            format="RGBA"
+            original_path=original_path or Path("output.png")
         )
     
     @staticmethod
     def replace_with_image(
         original: ImageInput,
         mask: Mask,
-        background_image: ImageInput
+        background_image: ImageInput,
+        original_path: Path = None
     ) -> ImageOutput:
         """
         Replace background with another image.
@@ -77,6 +80,7 @@ class BackgroundReplacer:
             original: Original RGB image
             mask: Foreground mask (0-1, float)
             background_image: Background image (will be resized to match)
+            original_path: Path to original image file
             
         Returns:
             ImageOutput with replaced background
@@ -121,14 +125,15 @@ class BackgroundReplacer:
             data=rgba,
             width=original.width,
             height=original.height,
-            format="RGBA"
+            original_path=original_path or Path("output.png")
         )
     
     @staticmethod
     def replace_with_blur(
         original: ImageInput,
         mask: Mask,
-        blur_strength: int = 51
+        blur_strength: int = 51,
+        original_path: Path = None
     ) -> ImageOutput:
         """
         Replace background with blurred version of original.
@@ -136,7 +141,8 @@ class BackgroundReplacer:
         Args:
             original: Original RGB image
             mask: Foreground mask (0-1, float)
-            blur_strength: Blur kernel size (must be odd)
+            blur_strength: Gaussian blur kernel size (must be odd)
+            original_path: Path to original image file
             
         Returns:
             ImageOutput with blurred background
@@ -184,5 +190,5 @@ class BackgroundReplacer:
             data=rgba,
             width=original.width,
             height=original.height,
-            format="RGBA"
+            original_path=original_path or Path("output.png")
         )
