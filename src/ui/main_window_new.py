@@ -46,13 +46,13 @@ class MainWindowNew(QMainWindow):
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(20, 20, 20, 20)
         
-        # LEFT COLUMN - Input & Actions
+        # LEFT COLUMN - Single preview + process button
         left_panel = self._create_left_panel()
-        main_layout.addWidget(left_panel, stretch=1)
+        main_layout.addWidget(left_panel, stretch=3)
         
-        # RIGHT COLUMN - Output & Settings
+        # RIGHT COLUMN - All controls
         right_panel = self._create_right_panel()
-        main_layout.addWidget(right_panel, stretch=1)
+        main_layout.addWidget(right_panel, stretch=2)
         
         # Status bar with language selector
         self.status_bar = QStatusBar()
@@ -106,21 +106,21 @@ class MainWindowNew(QMainWindow):
         self.status_bar.showMessage(self.translator.t('status_ready'))
     
     def _create_left_panel(self) -> QWidget:
-        """Create left panel with upload and actions."""
+        """Create left panel with single preview and process button."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setSpacing(15)
         
-        # Combined Input Area (Upload + Preview in one)
+        # Single preview area (shows input or output)
         self.input_group = QGroupBox(self.translator.t('input_image'))
         input_layout = QVBoxLayout()
         
-        # Image preview (also serves as drop area)
+        # Image preview
         self.preview_input = ImagePreviewWidget()
-        self.preview_input.setMinimumHeight(400)
+        self.preview_input.setMinimumHeight(500)
         input_layout.addWidget(self.preview_input)
         
-        # Drag & Drop overlay label (hidden when image loaded)
+        # Drag & Drop overlay label
         self.drop_area = QLabel(self.translator.t('drag_drop_text'))
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drop_area.setStyleSheet("""
@@ -140,7 +140,6 @@ class MainWindowNew(QMainWindow):
             }
         """)
         self.drop_area.mousePressEvent = lambda e: self._on_open_image()
-        # Position drop_area over preview_input
         self.drop_area.setParent(self.preview_input)
         self.drop_area.setGeometry(30, 100, 540, 200)
         
@@ -150,27 +149,31 @@ class MainWindowNew(QMainWindow):
         self.btn_zoom_in_input = QPushButton(self.translator.t('zoom_in'))
         self.btn_zoom_out_input = QPushButton(self.translator.t('zoom_out'))
         self.lbl_zoom_input = QLabel("100%")
+        self.chk_checkerboard = QCheckBox(self.translator.t('checkerboard'))
+        self.chk_checkerboard.setChecked(True)
         
         controls.addWidget(self.btn_fit_input)
         controls.addWidget(self.btn_zoom_in_input)
         controls.addWidget(self.btn_zoom_out_input)
         controls.addWidget(self.lbl_zoom_input)
         controls.addStretch()
+        controls.addWidget(self.chk_checkerboard)
         input_layout.addLayout(controls)
         
         self.input_group.setLayout(input_layout)
         layout.addWidget(self.input_group, stretch=1)
         
-        # Big Process Button
+        # Big Process Button (toggles between Remove/Reset)
         self.btn_process = QPushButton(self.translator.t('remove_background'))
-        self.btn_process.setMinimumHeight(60)
+        self.btn_process.setMinimumHeight(70)
         self.btn_process.setEnabled(False)
+        self.btn_process.setProperty('is_reset_mode', False)  # Track button state
         self.btn_process.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #3498db, stop:1 #2ecc71);
                 color: white;
-                font-size: 18px;
+                font-size: 20px;
                 font-weight: bold;
                 border: none;
                 border-radius: 10px;
@@ -186,71 +189,13 @@ class MainWindowNew(QMainWindow):
         """)
         layout.addWidget(self.btn_process)
         
-        # Action Buttons - Horizontal layout for compact design
-        self.actions_group = QGroupBox(self.translator.t('save_export'))
-        actions_layout = QHBoxLayout()
-        
-        self.btn_save = QPushButton(self.translator.t('save_png'))
-        self.btn_save.setMinimumHeight(45)
-        self.btn_save.setEnabled(False)
-        self.btn_save.setToolTip(self.translator.t('save_png_tooltip'))
-        
-        self.btn_export_mask = QPushButton(self.translator.t('mask'))
-        self.btn_export_mask.setMinimumHeight(45)
-        self.btn_export_mask.setEnabled(False)
-        self.btn_export_mask.setToolTip(self.translator.t('mask_tooltip'))
-        
-        self.btn_batch = QPushButton(self.translator.t('batch'))
-        self.btn_batch.setMinimumHeight(45)
-        self.btn_batch.setToolTip(self.translator.t('batch_tooltip'))
-        
-        actions_layout.addWidget(self.btn_save, 2)  # Give Save button more space
-        actions_layout.addWidget(self.btn_export_mask, 1)
-        actions_layout.addWidget(self.btn_batch, 1)
-        
-        self.actions_group.setLayout(actions_layout)
-        layout.addWidget(self.actions_group)
-        
-        # Reset button
-        self.btn_reset = QPushButton(self.translator.t('reset'))
-        self.btn_reset.setMinimumHeight(35)
-        layout.addWidget(self.btn_reset)
-        
         return panel
     
     def _create_right_panel(self) -> QWidget:
-        """Create right panel with output and settings."""
+        """Create right panel with all controls."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setSpacing(15)
-        
-        # Output Preview
-        self.output_group = QGroupBox(self.translator.t('output_preview'))
-        output_layout = QVBoxLayout()
-        
-        self.preview_output = ImagePreviewWidget()
-        self.preview_output.setMinimumHeight(400)
-        output_layout.addWidget(self.preview_output)
-        
-        # Output controls
-        controls = QHBoxLayout()
-        self.btn_fit_output = QPushButton(self.translator.t('fit'))
-        self.btn_zoom_in_output = QPushButton(self.translator.t('zoom_in'))
-        self.btn_zoom_out_output = QPushButton(self.translator.t('zoom_out'))
-        self.lbl_zoom_output = QLabel("100%")
-        self.chk_checkerboard = QCheckBox(self.translator.t('checkerboard'))
-        self.chk_checkerboard.setChecked(True)
-        
-        controls.addWidget(self.btn_fit_output)
-        controls.addWidget(self.btn_zoom_in_output)
-        controls.addWidget(self.btn_zoom_out_output)
-        controls.addWidget(self.lbl_zoom_output)
-        controls.addStretch()
-        controls.addWidget(self.chk_checkerboard)
-        output_layout.addLayout(controls)
-        
-        self.output_group.setLayout(output_layout)
-        layout.addWidget(self.output_group, stretch=1)
         
         # Processing Info
         self.info_group = QGroupBox(self.translator.t('processing_info'))
@@ -329,6 +274,45 @@ class MainWindowNew(QMainWindow):
         self.bg_group.setLayout(bg_layout)
         layout.addWidget(self.bg_group)
         
+        # Save & Export Buttons
+        self.actions_group = QGroupBox(self.translator.t('save_export'))
+        actions_layout = QVBoxLayout()
+        
+        # Row 1: Save PNG (primary)
+        self.btn_save = QPushButton(self.translator.t('save_png'))
+        self.btn_save.setMinimumHeight(50)
+        self.btn_save.setEnabled(False)
+        self.btn_save.setToolTip(self.translator.t('save_png_tooltip'))
+        self.btn_save.setStyleSheet("""
+            QPushButton {
+                background: #27ae60;
+                font-size: 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: #229954;
+            }
+        """)
+        actions_layout.addWidget(self.btn_save)
+        
+        # Row 2: Mask & Batch (secondary)
+        row2 = QHBoxLayout()
+        self.btn_export_mask = QPushButton(self.translator.t('mask'))
+        self.btn_export_mask.setMinimumHeight(40)
+        self.btn_export_mask.setEnabled(False)
+        self.btn_export_mask.setToolTip(self.translator.t('mask_tooltip'))
+        
+        self.btn_batch = QPushButton(self.translator.t('batch'))
+        self.btn_batch.setMinimumHeight(40)
+        self.btn_batch.setToolTip(self.translator.t('batch_tooltip'))
+        
+        row2.addWidget(self.btn_export_mask)
+        row2.addWidget(self.btn_batch)
+        actions_layout.addLayout(row2)
+        
+        self.actions_group.setLayout(actions_layout)
+        layout.addWidget(self.actions_group)
+        
         # Options
         self.options_group = QGroupBox(self.translator.t('options'))
         options_layout = QVBoxLayout()
@@ -401,21 +385,16 @@ class MainWindowNew(QMainWindow):
     
     def _connect_signals(self):
         """Connect UI signals."""
-        # Preview controls
+        # Preview controls (only input preview now)
         self.btn_fit_input.clicked.connect(lambda: self.preview_input.fit_to_view())
         self.btn_zoom_in_input.clicked.connect(lambda: self.preview_input.zoom_in())
         self.btn_zoom_out_input.clicked.connect(lambda: self.preview_input.zoom_out())
         
-        self.btn_fit_output.clicked.connect(lambda: self.preview_output.fit_to_view())
-        self.btn_zoom_in_output.clicked.connect(lambda: self.preview_output.zoom_in())
-        self.btn_zoom_out_output.clicked.connect(lambda: self.preview_output.zoom_out())
-        
-        # Action buttons
-        self.btn_process.clicked.connect(self._on_remove_background)
+        # Action buttons - Process button toggles between remove/reset
+        self.btn_process.clicked.connect(self._on_process_clicked)
         self.btn_save.clicked.connect(self._on_save_image)
         self.btn_export_mask.clicked.connect(self._on_save_mask)
         self.btn_batch.clicked.connect(self._on_batch_process)
-        self.btn_reset.clicked.connect(self._on_reset)
         
         # Sliders
         self.slider_threshold.valueChanged.connect(self._on_threshold_changed)
@@ -429,6 +408,17 @@ class MainWindowNew(QMainWindow):
         # Options
         self.chk_auto_crop.stateChanged.connect(self._on_auto_crop_changed)
         self.chk_checkerboard.stateChanged.connect(self._on_checkerboard_changed)
+    
+    def _on_process_clicked(self):
+        """Handle process button click - toggles between remove background and reset."""
+        is_reset_mode = self.btn_process.property('is_reset_mode')
+        
+        if is_reset_mode:
+            # Reset mode - restore original image
+            self._on_reset()
+        else:
+            # Remove background mode
+            self._on_remove_background()
     
     # Event handlers (copy from original main_window.py)
     def _on_open_image(self):
@@ -494,14 +484,37 @@ class MainWindowNew(QMainWindow):
             
             self.output_image_path = self.input_image_path.parent / f"{self.input_image_path.stem}_nobg.png"
             
+            # Show result on INPUT preview (overlay)
             self._update_preview_with_background()
-            self.preview_output.fit_to_view()
+            self.preview_input.fit_to_view()
             
+            # Change button to Reset mode
+            self.btn_process.setText("🔄 " + self.translator.t('reset'))
+            self.btn_process.setProperty('is_reset_mode', True)
+            self.btn_process.setStyleSheet("""
+                QPushButton {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #e74c3c, stop:1 #c0392b);
+                    color: white;
+                    font-size: 20px;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 10px;
+                    padding: 15px;
+                }
+                QPushButton:hover {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #c0392b, stop:1 #a93226);
+                }
+            """)
+            
+            # Enable save buttons
             self.btn_save.setEnabled(True)
             self.btn_export_mask.setEnabled(True)
             self.btn_pick_color.setEnabled(True)
             self.btn_clear_color.setEnabled(True)
             
+            # Update info
             t = self.translator.t
             self.lbl_info.setText(
                 f"{t('processing_complete')}\n"
@@ -518,7 +531,6 @@ class MainWindowNew(QMainWindow):
             QMessageBox.critical(self, t('error'), f"{t('failed_process')}\n{str(e)}")
             self.status_bar.showMessage(t('processing_failed'))
         
-        self.btn_process.setText(self.translator.t('remove_background'))
         self.btn_process.setEnabled(True)
     
     # Copy remaining methods from original main_window.py
@@ -588,10 +600,12 @@ class MainWindowNew(QMainWindow):
             result_rgb = np.clip(result_rgb, 0, 255).astype(np.uint8)
             
             result = np.dstack([result_rgb, np.full((rgba.shape[0], rgba.shape[1]), 255, dtype=np.uint8)])
-            self.preview_output.set_image_from_array(result, use_checkerboard=False)
+            # Show on INPUT preview (overlay result)
+            self.preview_input.set_image_from_array(result, use_checkerboard=False)
         else:
             use_checkerboard = self.chk_checkerboard.isChecked()
-            self.preview_output.set_image_from_array(rgba, use_checkerboard=use_checkerboard)
+            # Show on INPUT preview (overlay result)
+            self.preview_input.set_image_from_array(rgba, use_checkerboard=use_checkerboard)
     
     def _reprocess_with_settings(self):
         if not hasattr(self, 'raw_mask') or self.raw_mask is None:
@@ -848,41 +862,66 @@ class MainWindowNew(QMainWindow):
             )
     
     def _on_reset(self):
-        """Reset application state."""
-        self.input_image_path = None
-        self.output_image_path = None
-        self.transparent_result = None
-        self.raw_mask = None
-        self.original_image = None
-        
-        self.preview_input.clear_image()
-        self.preview_output.clear_image()
-        
-        # Show drop area overlay again
-        self.drop_area.show()
-        self.drop_area.setText(self.translator.t('drag_drop_text'))
-        self.drop_area.setStyleSheet("""
-            QLabel {
-                border: 3px dashed #3498db;
-                border-radius: 10px;
-                background: rgba(236, 240, 241, 0.95);
-                font-size: 18px;
-                font-weight: bold;
-                color: #3498db;
-                padding: 40px;
-            }
-            QLabel:hover {
-                background: rgba(213, 219, 219, 0.95);
-                border-color: #2980b9;
-                color: #2980b9;
-            }
-        """)
-        
-        self.btn_process.setEnabled(False)
-        self.btn_save.setEnabled(False)
-        self.btn_export_mask.setEnabled(False)
-        self.btn_pick_color.setEnabled(False)
-        self.btn_clear_color.setEnabled(False)
+        """Reset to original image."""
+        if self.input_image_path and self.input_image_path.exists():
+            # Restore original image
+            pixmap = QPixmap(str(self.input_image_path))
+            self.preview_input.set_image(pixmap, use_checkerboard=False)
+            self.preview_input.fit_to_view()
+            
+            # Clear processed data
+            self.transparent_result = None
+            self.raw_mask = None
+            self.original_image = None
+            
+            # Change button back to Remove Background mode
+            self.btn_process.setText("🎯 " + self.translator.t('remove_background'))
+            self.btn_process.setProperty('is_reset_mode', False)
+            self.btn_process.setStyleSheet("""
+                QPushButton {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #3498db, stop:1 #2ecc71);
+                    color: white;
+                    font-size: 20px;
+                    font-weight: bold;
+                    border: none;
+                    border-radius: 10px;
+                    padding: 15px;
+                }
+                QPushButton:hover {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 #2980b9, stop:1 #27ae60);
+                }
+            """)
+            self.btn_process.setEnabled(True)
+            
+            # Disable save buttons
+            self.btn_save.setEnabled(False)
+            self.btn_export_mask.setEnabled(False)
+            self.btn_pick_color.setEnabled(False)
+            self.btn_clear_color.setEnabled(False)
+            
+            # Reset info
+            self.lbl_info.setText(self.translator.t('no_image_processed'))
+            self.status_bar.showMessage(self.translator.t('status_ready'))
+        else:
+            # No image - full reset
+            self.input_image_path = None
+            self.output_image_path = None
+            self.transparent_result = None
+            self.raw_mask = None
+            self.original_image = None
+            
+            self.preview_input.clear_image()
+            
+            # Show drop area overlay again
+            self.drop_area.show()
+            
+            self.btn_process.setEnabled(False)
+            self.btn_save.setEnabled(False)
+            self.btn_export_mask.setEnabled(False)
+            self.btn_pick_color.setEnabled(False)
+            self.btn_clear_color.setEnabled(False)
         
         self.lbl_info.setText(self.translator.t('no_image_processed'))
         self.status_bar.showMessage(self.translator.t('status_ready'))
@@ -903,7 +942,6 @@ class MainWindowNew(QMainWindow):
         # GroupBox titles
         self.input_group.setTitle(t('input_image'))
         self.actions_group.setTitle(t('save_export'))
-        self.output_group.setTitle(t('output_preview'))
         self.info_group.setTitle(t('processing_info'))
         self.adjust_group.setTitle(t('fine_tune'))
         self.bg_group.setTitle(t('bg_color_preview'))
@@ -917,23 +955,25 @@ class MainWindowNew(QMainWindow):
         if self.drop_area.isVisible():
             self.drop_area.setText(t('drag_drop_text'))
         
-        # Buttons
-        self.btn_process.setText(t('remove_background'))
+        # Process button - check current mode
+        is_reset_mode = self.btn_process.property('is_reset_mode')
+        if is_reset_mode:
+            self.btn_process.setText("🔄 " + t('reset'))
+        else:
+            self.btn_process.setText("🎯 " + t('remove_background'))
+        
+        # Save buttons
         self.btn_save.setText(t('save_png'))
         self.btn_save.setToolTip(t('save_png_tooltip'))
         self.btn_export_mask.setText(t('mask'))
         self.btn_export_mask.setToolTip(t('mask_tooltip'))
         self.btn_batch.setText(t('batch'))
         self.btn_batch.setToolTip(t('batch_tooltip'))
-        self.btn_reset.setText(t('reset'))
         
         # Preview buttons
         self.btn_fit_input.setText(t('fit'))
         self.btn_zoom_in_input.setText(t('zoom_in'))
         self.btn_zoom_out_input.setText(t('zoom_out'))
-        self.btn_fit_output.setText(t('fit'))
-        self.btn_zoom_in_output.setText(t('zoom_in'))
-        self.btn_zoom_out_output.setText(t('zoom_out'))
         self.chk_checkerboard.setText(t('checkerboard'))
         
         # Adjustment labels
