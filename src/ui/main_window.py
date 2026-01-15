@@ -162,60 +162,60 @@ class MainWindow(QMainWindow):
         group = QGroupBox("Settings")
         layout = QVBoxLayout()
         
-        # Model path
-        model_layout = QHBoxLayout()
-        model_layout.addWidget(QLabel("Model:"))
-        self.txt_model = QLineEdit(str(self.view_model.settings.model_path))
-        self.txt_model.setReadOnly(True)
-        model_layout.addWidget(self.txt_model)
-        self.btn_browse_model = QPushButton("Browse...")
-        self.btn_browse_model.clicked.connect(self._on_browse_model)
-        model_layout.addWidget(self.btn_browse_model)
-        layout.addLayout(model_layout)
+        # Model path - HIDDEN
+        # model_layout = QHBoxLayout()
+        # model_layout.addWidget(QLabel("Model:"))
+        # self.txt_model = QLineEdit(str(self.view_model.settings.model_path))
+        # self.txt_model.setReadOnly(True)
+        # model_layout.addWidget(self.txt_model)
+        # self.btn_browse_model = QPushButton("Browse...")
+        # self.btn_browse_model.clicked.connect(self._on_browse_model)
+        # model_layout.addWidget(self.btn_browse_model)
+        # layout.addLayout(model_layout)
         
-        # Device selection
-        device_layout = QHBoxLayout()
-        device_layout.addWidget(QLabel("Device:"))
-        self.device_group = QButtonGroup()
-        self.radio_cpu = QRadioButton("CPU")
-        self.radio_cuda = QRadioButton("GPU-CUDA")
-        self.radio_dml = QRadioButton("GPU-DirectML")
+        # Device selection - HIDDEN
+        # device_layout = QHBoxLayout()
+        # device_layout.addWidget(QLabel("Device:"))
+        # self.device_group = QButtonGroup()
+        # self.radio_cpu = QRadioButton("CPU")
+        # self.radio_cuda = QRadioButton("GPU-CUDA")
+        # self.radio_dml = QRadioButton("GPU-DirectML")
         
-        self.device_group.addButton(self.radio_cpu, 0)
-        self.device_group.addButton(self.radio_cuda, 1)
-        self.device_group.addButton(self.radio_dml, 2)
+        # self.device_group.addButton(self.radio_cpu, 0)
+        # self.device_group.addButton(self.radio_cuda, 1)
+        # self.device_group.addButton(self.radio_dml, 2)
         
-        # Connect device change handler
-        self.device_group.buttonClicked.connect(self._on_device_changed)
+        # # Connect device change handler
+        # self.device_group.buttonClicked.connect(self._on_device_changed)
         
-        # Auto-detect available providers
-        provider_info = ProviderManager.get_provider_info()
-        self.radio_cpu.setChecked(True)
-        self.radio_cuda.setEnabled("CUDAExecutionProvider" in provider_info)
-        self.radio_dml.setEnabled("DmlExecutionProvider" in provider_info)
+        # # Auto-detect available providers
+        # provider_info = ProviderManager.get_provider_info()
+        # self.radio_cpu.setChecked(True)
+        # self.radio_cuda.setEnabled("CUDAExecutionProvider" in provider_info)
+        # self.radio_dml.setEnabled("DmlExecutionProvider" in provider_info)
         
-        # Set recommended provider
-        recommended = ProviderManager.get_recommended_provider()
-        if recommended == "CUDA":
-            self.radio_cuda.setChecked(True)
-        elif recommended == "DirectML":
-            self.radio_dml.setChecked(True)
+        # # Set recommended provider
+        # recommended = ProviderManager.get_recommended_provider()
+        # if recommended == "CUDA":
+        #     self.radio_cuda.setChecked(True)
+        # elif recommended == "DirectML":
+        #     self.radio_dml.setChecked(True)
         
-        device_layout.addWidget(self.radio_cpu)
-        device_layout.addWidget(self.radio_cuda)
-        device_layout.addWidget(self.radio_dml)
+        # device_layout.addWidget(self.radio_cpu)
+        # device_layout.addWidget(self.radio_cuda)
+        # device_layout.addWidget(self.radio_dml)
         
-        # Add provider info tooltip
-        provider_status = []
-        for key, info in provider_info.items():
-            provider_status.append(f"{info['display_name']}: {info['description']}")
+        # # Add provider info tooltip
+        # provider_status = []
+        # for key, info in provider_info.items():
+        #     provider_status.append(f"{info['display_name']}: {info['description']}")
         
-        lbl_provider_info = QLabel("ⓘ")
-        lbl_provider_info.setToolTip("\n".join(provider_status))
-        device_layout.addWidget(lbl_provider_info)
+        # lbl_provider_info = QLabel("ⓘ")
+        # lbl_provider_info.setToolTip("\n".join(provider_status))
+        # device_layout.addWidget(lbl_provider_info)
         
-        device_layout.addStretch()
-        layout.addLayout(device_layout)
+        # device_layout.addStretch()
+        # layout.addLayout(device_layout)
         
         # Advanced options
         advanced_layout = QHBoxLayout()

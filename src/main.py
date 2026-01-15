@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtCore import Qt
 import qasync
 
-from src.ui.main_window import MainWindow
+from src.ui.main_window_new import MainWindowNew  # Use new modern UI
 from src.ui.view_models.main_view_model import MainViewModel
 from src.application.use_cases.remove_background_use_case import RemoveBackgroundUseCase
 from src.infrastructure.engines.onnx_birefnet_engine import OnnxBiRefNetEngine
@@ -63,8 +63,8 @@ def main():
         # Initialize view model
         view_model = MainViewModel(use_case, image_io, settings)
         
-        # Create and show main window
-        window = MainWindow(view_model)
+        # Create and show main window with new modern UI
+        window = MainWindowNew(view_model)
         window.show()
         
         # Setup async event loop
