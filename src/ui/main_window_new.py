@@ -42,7 +42,64 @@ class MainWindowNew(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        main_layout = QHBoxLayout(central_widget)
+        # Main vertical layout (top bar + content)
+        outer_layout = QVBoxLayout(central_widget)
+        outer_layout.setSpacing(0)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Top bar with language selector
+        top_bar = QWidget()
+        top_bar.setStyleSheet("background: white; border-bottom: 1px solid #dfe6e9;")
+        top_bar.setFixedHeight(50)
+        top_bar_layout = QHBoxLayout(top_bar)
+        top_bar_layout.setContentsMargins(20, 0, 20, 0)
+        
+        # App title on left
+        title_label = QLabel("🎨 RemoveBG - AI Background Removal")
+        title_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #2c3e50;")
+        top_bar_layout.addWidget(title_label)
+        top_bar_layout.addStretch()
+        
+        # Language selector on right
+        self.lang_selector = QComboBox()
+        self.lang_selector.addItem("VI - Tiếng Việt", "vi")
+        self.lang_selector.addItem("EN - English", "en")
+        self.lang_selector.setCurrentIndex(0)
+        self.lang_selector.setMinimumWidth(180)
+        self.lang_selector.setStyleSheet("""
+            QComboBox {
+                padding: 8px 15px;
+                border: 2px solid #3498db;
+                border-radius: 6px;
+                background: white;
+                font-size: 13px;
+                font-weight: bold;
+                color: #2c3e50;
+            }
+            QComboBox:hover {
+                border-color: #2980b9;
+                background: #ecf0f1;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 25px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 7px solid #3498db;
+                margin-right: 8px;
+            }
+        """)
+        self.lang_selector.currentIndexChanged.connect(self._on_language_changed)
+        top_bar_layout.addWidget(self.lang_selector)
+        
+        outer_layout.addWidget(top_bar)
+        
+        # Content area (2 columns)
+        content_widget = QWidget()
+        main_layout = QHBoxLayout(content_widget)
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(20, 20, 20, 20)
         
@@ -54,55 +111,11 @@ class MainWindowNew(QMainWindow):
         right_panel = self._create_right_panel()
         main_layout.addWidget(right_panel, stretch=2)
         
-        # Status bar with language selector
+        outer_layout.addWidget(content_widget, stretch=1)
+        
+        # Status bar (simple, no language selector)
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        
-        # Language selector in status bar with flags
-        lang_widget = QWidget()
-        lang_layout = QHBoxLayout(lang_widget)
-        lang_layout.setContentsMargins(0, 0, 10, 0)
-        lang_layout.setSpacing(5)
-        
-        lang_label = QLabel("🌐")
-        lang_label.setStyleSheet("font-size: 16px;")
-        
-        self.lang_selector = QComboBox()
-        # Vietnamese with flag
-        self.lang_selector.addItem("🇻🇳 VI - Tiếng Việt", "vi")
-        # English with flag
-        self.lang_selector.addItem("🇺🇸 EN - English", "en")
-        self.lang_selector.setCurrentIndex(0)  # Default Vietnamese
-        self.lang_selector.setMinimumWidth(180)
-        self.lang_selector.setStyleSheet("""
-            QComboBox {
-                padding: 5px 10px;
-                border: 1px solid #bdc3c7;
-                border-radius: 5px;
-                background: white;
-                font-size: 13px;
-            }
-            QComboBox:hover {
-                border-color: #3498db;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 4px solid transparent;
-                border-right: 4px solid transparent;
-                border-top: 6px solid #7f8c8d;
-                margin-right: 5px;
-            }
-        """)
-        self.lang_selector.currentIndexChanged.connect(self._on_language_changed)
-        
-        lang_layout.addWidget(lang_label)
-        lang_layout.addWidget(self.lang_selector)
-        self.status_bar.addPermanentWidget(lang_widget)
-        
         self.status_bar.showMessage(self.translator.t('status_ready'))
     
     def _create_left_panel(self) -> QWidget:
@@ -489,7 +502,7 @@ class MainWindowNew(QMainWindow):
             self.preview_input.fit_to_view()
             
             # Change button to Reset mode
-            self.btn_process.setText("🔄 " + self.translator.t('reset'))
+            self.btn_process.setText(self.translator.t('reset'))
             self.btn_process.setProperty('is_reset_mode', True)
             self.btn_process.setStyleSheet("""
                 QPushButton {
@@ -875,7 +888,7 @@ class MainWindowNew(QMainWindow):
             self.original_image = None
             
             # Change button back to Remove Background mode
-            self.btn_process.setText("🎯 " + self.translator.t('remove_background'))
+            self.btn_process.setText(self.translator.t('remove_background'))
             self.btn_process.setProperty('is_reset_mode', False)
             self.btn_process.setStyleSheet("""
                 QPushButton {
@@ -958,9 +971,9 @@ class MainWindowNew(QMainWindow):
         # Process button - check current mode
         is_reset_mode = self.btn_process.property('is_reset_mode')
         if is_reset_mode:
-            self.btn_process.setText("🔄 " + t('reset'))
+            self.btn_process.setText(t('reset'))
         else:
-            self.btn_process.setText("🎯 " + t('remove_background'))
+            self.btn_process.setText(t('remove_background'))
         
         # Save buttons
         self.btn_save.setText(t('save_png'))
