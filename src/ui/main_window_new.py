@@ -63,41 +63,38 @@ class MainWindowNew(QMainWindow):
         layout = QVBoxLayout(panel)
         layout.setSpacing(15)
         
-        # Upload Area
-        upload_group = QGroupBox("📤 UPLOAD IMAGE")
-        upload_layout = QVBoxLayout()
+        # Combined Input Area (Upload + Preview in one)
+        input_group = QGroupBox("🖼️ INPUT IMAGE")
+        input_layout = QVBoxLayout()
         
-        # Drag & Drop Area
+        # Image preview (also serves as drop area)
+        self.preview_input = ImagePreviewWidget()
+        self.preview_input.setMinimumHeight(400)
+        input_layout.addWidget(self.preview_input)
+        
+        # Drag & Drop overlay label (hidden when image loaded)
         self.drop_area = QLabel("Drag & Drop Image Here\nor Click to Browse")
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.drop_area.setMinimumHeight(150)
         self.drop_area.setStyleSheet("""
             QLabel {
                 border: 3px dashed #3498db;
                 border-radius: 10px;
-                background: #ecf0f1;
-                font-size: 16px;
-                color: #7f8c8d;
-                padding: 20px;
+                background: rgba(236, 240, 241, 0.95);
+                font-size: 18px;
+                font-weight: bold;
+                color: #3498db;
+                padding: 40px;
             }
             QLabel:hover {
-                background: #d5dbdb;
+                background: rgba(213, 219, 219, 0.95);
                 border-color: #2980b9;
+                color: #2980b9;
             }
         """)
         self.drop_area.mousePressEvent = lambda e: self._on_open_image()
-        upload_layout.addWidget(self.drop_area)
-        
-        upload_group.setLayout(upload_layout)
-        layout.addWidget(upload_group)
-        
-        # Preview
-        preview_group = QGroupBox("🖼️ INPUT PREVIEW")
-        preview_layout = QVBoxLayout()
-        
-        self.preview_input = ImagePreviewWidget()
-        self.preview_input.setMinimumHeight(300)
-        preview_layout.addWidget(self.preview_input)
+        # Position drop_area over preview_input
+        self.drop_area.setParent(self.preview_input)
+        self.drop_area.setGeometry(30, 100, 540, 200)
         
         # Preview controls
         controls = QHBoxLayout()
@@ -111,10 +108,10 @@ class MainWindowNew(QMainWindow):
         controls.addWidget(self.btn_zoom_out_input)
         controls.addWidget(self.lbl_zoom_input)
         controls.addStretch()
-        preview_layout.addLayout(controls)
+        input_layout.addLayout(controls)
         
-        preview_group.setLayout(preview_layout)
-        layout.addWidget(preview_group, stretch=1)
+        input_group.setLayout(input_layout)
+        layout.addWidget(input_group, stretch=1)
         
         # Big Process Button
         self.btn_process = QPushButton("🎯 REMOVE BACKGROUND")
@@ -141,24 +138,27 @@ class MainWindowNew(QMainWindow):
         """)
         layout.addWidget(self.btn_process)
         
-        # Action Buttons
+        # Action Buttons - Horizontal layout for compact design
         actions_group = QGroupBox("💾 SAVE & EXPORT")
-        actions_layout = QVBoxLayout()
+        actions_layout = QHBoxLayout()
         
-        self.btn_save = QPushButton("💾 Save PNG (Transparent)")
-        self.btn_save.setMinimumHeight(40)
+        self.btn_save = QPushButton("💾 Save PNG")
+        self.btn_save.setMinimumHeight(45)
         self.btn_save.setEnabled(False)
+        self.btn_save.setToolTip("Save as transparent PNG")
         
-        self.btn_export_mask = QPushButton("📄 Export Mask")
-        self.btn_export_mask.setMinimumHeight(40)
+        self.btn_export_mask = QPushButton("📄 Mask")
+        self.btn_export_mask.setMinimumHeight(45)
         self.btn_export_mask.setEnabled(False)
+        self.btn_export_mask.setToolTip("Export mask in different formats")
         
-        self.btn_batch = QPushButton("📂 Batch Process...")
-        self.btn_batch.setMinimumHeight(40)
+        self.btn_batch = QPushButton("📂 Batch...")
+        self.btn_batch.setMinimumHeight(45)
+        self.btn_batch.setToolTip("Batch process multiple images")
         
-        actions_layout.addWidget(self.btn_save)
-        actions_layout.addWidget(self.btn_export_mask)
-        actions_layout.addWidget(self.btn_batch)
+        actions_layout.addWidget(self.btn_save, 2)  # Give Save button more space
+        actions_layout.addWidget(self.btn_export_mask, 1)
+        actions_layout.addWidget(self.btn_batch, 1)
         
         actions_group.setLayout(actions_layout)
         layout.addWidget(actions_group)
@@ -394,17 +394,8 @@ class MainWindowNew(QMainWindow):
             self.preview_input.set_image(pixmap, use_checkerboard=False)
             self.preview_input.fit_to_view()
             
-            self.drop_area.setText(f"✓ {Path(file_path).name}")
-            self.drop_area.setStyleSheet("""
-                QLabel {
-                    border: 3px solid #27ae60;
-                    border-radius: 10px;
-                    background: #d5f4e6;
-                    font-size: 14px;
-                    color: #27ae60;
-                    padding: 20px;
-                }
-            """)
+            # Hide drop area overlay when image is loaded
+            self.drop_area.hide()
             
             self.btn_process.setEnabled(True)
             self.status_bar.showMessage(f"Loaded: {file_path}")
@@ -423,17 +414,8 @@ class MainWindowNew(QMainWindow):
             self.preview_input.set_image(pixmap, use_checkerboard=False)
             self.preview_input.fit_to_view()
             
-            self.drop_area.setText(f"✓ {Path(files[0]).name}")
-            self.drop_area.setStyleSheet("""
-                QLabel {
-                    border: 3px solid #27ae60;
-                    border-radius: 10px;
-                    background: #d5f4e6;
-                    font-size: 14px;
-                    color: #27ae60;
-                    padding: 20px;
-                }
-            """)
+            # Hide drop area overlay when image is loaded
+            self.drop_area.hide()
             
             self.btn_process.setEnabled(True)
             self.status_bar.showMessage(f"Loaded: {files[0]}")
@@ -818,19 +800,23 @@ class MainWindowNew(QMainWindow):
         self.preview_input.clear_image()
         self.preview_output.clear_image()
         
+        # Show drop area overlay again
+        self.drop_area.show()
         self.drop_area.setText("Drag & Drop Image Here\nor Click to Browse")
         self.drop_area.setStyleSheet("""
             QLabel {
                 border: 3px dashed #3498db;
                 border-radius: 10px;
-                background: #ecf0f1;
-                font-size: 16px;
-                color: #7f8c8d;
-                padding: 20px;
+                background: rgba(236, 240, 241, 0.95);
+                font-size: 18px;
+                font-weight: bold;
+                color: #3498db;
+                padding: 40px;
             }
             QLabel:hover {
-                background: #d5dbdb;
+                background: rgba(213, 219, 219, 0.95);
                 border-color: #2980b9;
+                color: #2980b9;
             }
         """)
         
