@@ -22,6 +22,8 @@ class RemoveBackgroundResult:
     output_size_mb: float
     was_cropped: bool = False
     crop_bounds: tuple[int, int, int, int] | None = None  # (x, y, width, height)
+    raw_mask: any = None  # Raw mask from AI (before post-processing)
+    original_image: any = None  # Original ImageInput for reprocessing
 
 
 class RemoveBackgroundUseCase:
@@ -91,5 +93,7 @@ class RemoveBackgroundUseCase:
             input_size=(image_input.width, image_input.height),
             output_size_mb=output.size_mb,
             was_cropped=was_cropped,
-            crop_bounds=crop_bounds
+            crop_bounds=crop_bounds,
+            raw_mask=raw_mask,
+            original_image=image_input
         )

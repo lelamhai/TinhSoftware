@@ -30,6 +30,8 @@ class MainWindow(QMainWindow):
         self.background_image_path: Optional[Path] = None
         self.bg_color = None  # None = transparent, tuple = color
         self.transparent_result = None  # Store transparent RGBA result for compositing
+        self.raw_mask = None  # Store raw mask from AI (before post-processing)
+        self.original_image = None  # Store original ImageInput for reprocessing
         
         self.setWindowTitle("RemoveBG Desktop - BiRefNet")
         self.setGeometry(100, 100, 1400, 900)
@@ -345,8 +347,10 @@ class MainWindow(QMainWindow):
             # Always remove background to transparent
             result = await self.view_model.remove_background(self.input_image_path)
             
-            # Store transparent result for real-time compositing
+            # Store raw data for real-time reprocessing
             self.transparent_result = result.output.data.copy()
+            self.raw_mask = result.raw_mask
+            self.original_image = result.original_image
             
             # Display output
             self.output_image_path = self.input_image_path.parent / f"{self.input_image_path.stem}_nobg.png"
@@ -620,20 +624,29 @@ class MainWindow(QMainWindow):
             )
     
     def _on_threshold_changed(self, value: int):
-        """Handle threshold slider change."""
+        """Handle threshold slider change - Update preview real-time."""
         threshold = value / 100.0
         self.label_threshold.setText(f"{threshold:.2f}")
         self.view_model.settings.threshold = threshold
+        
+        # Reprocess and update preview
+        self._reprocess_with_settings()
     
     def _on_smooth_changed(self, value: int):
-        """Handle smooth slider change."""
+        """Handle smooth slider change - Update preview real-time."""
         self.label_smooth.setText(f"{value} px")
         self.view_model.settings.smooth_pixels = value
+        
+        # Reprocess and update preview
+        self._reprocess_with_settings()
     
     def _on_feather_changed(self, value: int):
-        """Handle feather slider change."""
+        """Handle feather slider change - Update preview real-time."""
         self.label_feather.setText(f"{value} px")
         self.view_model.settings.feather_pixels = value
+        
+        # Reprocess and update preview
+        self._reprocess_with_settings()
     
     def _on_pick_color(self):
         """Handle pick color button - Update preview real-time."""
@@ -700,6 +713,30 @@ class MainWindow(QMainWindow):
             # Display transparent with checkerboard
             use_checkerboard = self.chk_checkerboard.isChecked()
             self.preview_output.set_image_from_array(rgba, use_checkerboard=use_checkerboard)
+    
+    def _reprocess_with_settings(self):
+        """Reprocess mask with current settings and update preview."""
+        if not hasattr(self, 'raw_mask') or self.raw_mask is None:
+            return
+        
+        if not hasattr(self, 'original_image') or self.original_image is None:
+            return
+        
+        # Import necessary modules
+        from src.domain.services.post_process_mask import PostProcessMask
+        from src.domain.services.alpha_compose import AlphaCompose
+        
+        # Re-apply post-processing with current settings
+        processed_mask = PostProcessMask.apply(self.raw_mask, self.view_model.settings)
+        
+        # Compose new RGBA
+        output = AlphaCompose.compose(self.original_image, processed_mask)
+        
+        # Update transparent result
+        self.transparent_result = output.data.copy()
+        
+        # Update preview with current background color
+        self._update_preview_with_background()
     
     def _on_save_mask(self):
         """Handle save mask button."""
