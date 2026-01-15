@@ -5,13 +5,14 @@ from typing import Optional, List
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QFileDialog, QMessageBox, QGroupBox, QSlider, QCheckBox,
-    QStatusBar, QFrame, QSizePolicy
+    QStatusBar, QFrame, QSizePolicy, QComboBox
 )
 from PyQt6.QtCore import Qt, QTimer, QSize
 from PyQt6.QtGui import QPixmap, QDragEnterEvent, QDropEvent
 
 from .view_models.main_view_model import MainViewModel
 from .widgets.image_preview import ImagePreviewWidget
+from .translations import Translator
 
 
 class MainWindowNew(QMainWindow):
@@ -20,6 +21,7 @@ class MainWindowNew(QMainWindow):
     def __init__(self, view_model: MainViewModel):
         super().__init__()
         self.view_model = view_model
+        self.translator = Translator('vi')  # Default to Vietnamese
         self.input_image_path: Optional[Path] = None
         self.output_image_path: Optional[Path] = None
         self.bg_color = None
@@ -52,10 +54,56 @@ class MainWindowNew(QMainWindow):
         right_panel = self._create_right_panel()
         main_layout.addWidget(right_panel, stretch=1)
         
-        # Status bar
+        # Status bar with language selector
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready - Drag & drop image to start")
+        
+        # Language selector in status bar with flags
+        lang_widget = QWidget()
+        lang_layout = QHBoxLayout(lang_widget)
+        lang_layout.setContentsMargins(0, 0, 10, 0)
+        lang_layout.setSpacing(5)
+        
+        lang_label = QLabel("🌐")
+        lang_label.setStyleSheet("font-size: 16px;")
+        
+        self.lang_selector = QComboBox()
+        # Vietnamese with flag
+        self.lang_selector.addItem("🇻🇳 VI - Tiếng Việt", "vi")
+        # English with flag
+        self.lang_selector.addItem("🇺🇸 EN - English", "en")
+        self.lang_selector.setCurrentIndex(0)  # Default Vietnamese
+        self.lang_selector.setMinimumWidth(180)
+        self.lang_selector.setStyleSheet("""
+            QComboBox {
+                padding: 5px 10px;
+                border: 1px solid #bdc3c7;
+                border-radius: 5px;
+                background: white;
+                font-size: 13px;
+            }
+            QComboBox:hover {
+                border-color: #3498db;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 6px solid #7f8c8d;
+                margin-right: 5px;
+            }
+        """)
+        self.lang_selector.currentIndexChanged.connect(self._on_language_changed)
+        
+        lang_layout.addWidget(lang_label)
+        lang_layout.addWidget(self.lang_selector)
+        self.status_bar.addPermanentWidget(lang_widget)
+        
+        self.status_bar.showMessage(self.translator.t('status_ready'))
     
     def _create_left_panel(self) -> QWidget:
         """Create left panel with upload and actions."""
@@ -64,7 +112,7 @@ class MainWindowNew(QMainWindow):
         layout.setSpacing(15)
         
         # Combined Input Area (Upload + Preview in one)
-        input_group = QGroupBox("🖼️ INPUT IMAGE")
+        self.input_group = QGroupBox(self.translator.t('input_image'))
         input_layout = QVBoxLayout()
         
         # Image preview (also serves as drop area)
@@ -73,7 +121,7 @@ class MainWindowNew(QMainWindow):
         input_layout.addWidget(self.preview_input)
         
         # Drag & Drop overlay label (hidden when image loaded)
-        self.drop_area = QLabel("Drag & Drop Image Here\nor Click to Browse")
+        self.drop_area = QLabel(self.translator.t('drag_drop_text'))
         self.drop_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.drop_area.setStyleSheet("""
             QLabel {
@@ -98,9 +146,9 @@ class MainWindowNew(QMainWindow):
         
         # Preview controls
         controls = QHBoxLayout()
-        self.btn_fit_input = QPushButton("Fit")
-        self.btn_zoom_in_input = QPushButton("Zoom +")
-        self.btn_zoom_out_input = QPushButton("Zoom -")
+        self.btn_fit_input = QPushButton(self.translator.t('fit'))
+        self.btn_zoom_in_input = QPushButton(self.translator.t('zoom_in'))
+        self.btn_zoom_out_input = QPushButton(self.translator.t('zoom_out'))
         self.lbl_zoom_input = QLabel("100%")
         
         controls.addWidget(self.btn_fit_input)
@@ -110,11 +158,11 @@ class MainWindowNew(QMainWindow):
         controls.addStretch()
         input_layout.addLayout(controls)
         
-        input_group.setLayout(input_layout)
-        layout.addWidget(input_group, stretch=1)
+        self.input_group.setLayout(input_layout)
+        layout.addWidget(self.input_group, stretch=1)
         
         # Big Process Button
-        self.btn_process = QPushButton("🎯 REMOVE BACKGROUND")
+        self.btn_process = QPushButton(self.translator.t('remove_background'))
         self.btn_process.setMinimumHeight(60)
         self.btn_process.setEnabled(False)
         self.btn_process.setStyleSheet("""
@@ -139,32 +187,32 @@ class MainWindowNew(QMainWindow):
         layout.addWidget(self.btn_process)
         
         # Action Buttons - Horizontal layout for compact design
-        actions_group = QGroupBox("💾 SAVE & EXPORT")
+        self.actions_group = QGroupBox(self.translator.t('save_export'))
         actions_layout = QHBoxLayout()
         
-        self.btn_save = QPushButton("💾 Save PNG")
+        self.btn_save = QPushButton(self.translator.t('save_png'))
         self.btn_save.setMinimumHeight(45)
         self.btn_save.setEnabled(False)
-        self.btn_save.setToolTip("Save as transparent PNG")
+        self.btn_save.setToolTip(self.translator.t('save_png_tooltip'))
         
-        self.btn_export_mask = QPushButton("📄 Mask")
+        self.btn_export_mask = QPushButton(self.translator.t('mask'))
         self.btn_export_mask.setMinimumHeight(45)
         self.btn_export_mask.setEnabled(False)
-        self.btn_export_mask.setToolTip("Export mask in different formats")
+        self.btn_export_mask.setToolTip(self.translator.t('mask_tooltip'))
         
-        self.btn_batch = QPushButton("📂 Batch...")
+        self.btn_batch = QPushButton(self.translator.t('batch'))
         self.btn_batch.setMinimumHeight(45)
-        self.btn_batch.setToolTip("Batch process multiple images")
+        self.btn_batch.setToolTip(self.translator.t('batch_tooltip'))
         
         actions_layout.addWidget(self.btn_save, 2)  # Give Save button more space
         actions_layout.addWidget(self.btn_export_mask, 1)
         actions_layout.addWidget(self.btn_batch, 1)
         
-        actions_group.setLayout(actions_layout)
-        layout.addWidget(actions_group)
+        self.actions_group.setLayout(actions_layout)
+        layout.addWidget(self.actions_group)
         
         # Reset button
-        self.btn_reset = QPushButton("🔄 Reset")
+        self.btn_reset = QPushButton(self.translator.t('reset'))
         self.btn_reset.setMinimumHeight(35)
         layout.addWidget(self.btn_reset)
         
@@ -177,7 +225,7 @@ class MainWindowNew(QMainWindow):
         layout.setSpacing(15)
         
         # Output Preview
-        output_group = QGroupBox("✨ OUTPUT PREVIEW")
+        self.output_group = QGroupBox(self.translator.t('output_preview'))
         output_layout = QVBoxLayout()
         
         self.preview_output = ImagePreviewWidget()
@@ -186,11 +234,11 @@ class MainWindowNew(QMainWindow):
         
         # Output controls
         controls = QHBoxLayout()
-        self.btn_fit_output = QPushButton("Fit")
-        self.btn_zoom_in_output = QPushButton("Zoom +")
-        self.btn_zoom_out_output = QPushButton("Zoom -")
+        self.btn_fit_output = QPushButton(self.translator.t('fit'))
+        self.btn_zoom_in_output = QPushButton(self.translator.t('zoom_in'))
+        self.btn_zoom_out_output = QPushButton(self.translator.t('zoom_out'))
         self.lbl_zoom_output = QLabel("100%")
-        self.chk_checkerboard = QCheckBox("Checkerboard")
+        self.chk_checkerboard = QCheckBox(self.translator.t('checkerboard'))
         self.chk_checkerboard.setChecked(True)
         
         controls.addWidget(self.btn_fit_output)
@@ -201,25 +249,26 @@ class MainWindowNew(QMainWindow):
         controls.addWidget(self.chk_checkerboard)
         output_layout.addLayout(controls)
         
-        output_group.setLayout(output_layout)
-        layout.addWidget(output_group, stretch=1)
+        self.output_group.setLayout(output_layout)
+        layout.addWidget(self.output_group, stretch=1)
         
         # Processing Info
-        info_group = QGroupBox("📊 PROCESSING INFO")
+        self.info_group = QGroupBox(self.translator.t('processing_info'))
         info_layout = QVBoxLayout()
-        self.lbl_info = QLabel("No image processed yet")
+        self.lbl_info = QLabel(self.translator.t('no_image_processed'))
         self.lbl_info.setWordWrap(True)
         info_layout.addWidget(self.lbl_info)
-        info_group.setLayout(info_layout)
-        layout.addWidget(info_group)
+        self.info_group.setLayout(info_layout)
+        layout.addWidget(self.info_group)
         
         # Adjustments
-        adjust_group = QGroupBox("🎨 FINE-TUNE ADJUSTMENTS")
+        self.adjust_group = QGroupBox(self.translator.t('fine_tune'))
         adjust_layout = QVBoxLayout()
         
         # Threshold
         threshold_layout = QHBoxLayout()
-        threshold_layout.addWidget(QLabel("Threshold:"))
+        self.lbl_threshold_title = QLabel(self.translator.t('threshold'))
+        threshold_layout.addWidget(self.lbl_threshold_title)
         self.slider_threshold = QSlider(Qt.Orientation.Horizontal)
         self.slider_threshold.setMinimum(0)
         self.slider_threshold.setMaximum(100)
@@ -231,7 +280,8 @@ class MainWindowNew(QMainWindow):
         
         # Smooth
         smooth_layout = QHBoxLayout()
-        smooth_layout.addWidget(QLabel("Smooth:"))
+        self.lbl_smooth_title = QLabel(self.translator.t('smooth'))
+        smooth_layout.addWidget(self.lbl_smooth_title)
         self.slider_smooth = QSlider(Qt.Orientation.Horizontal)
         self.slider_smooth.setMinimum(0)
         self.slider_smooth.setMaximum(20)
@@ -243,7 +293,8 @@ class MainWindowNew(QMainWindow):
         
         # Feather
         feather_layout = QHBoxLayout()
-        feather_layout.addWidget(QLabel("Feather:"))
+        self.lbl_feather_title = QLabel(self.translator.t('feather'))
+        feather_layout.addWidget(self.lbl_feather_title)
         self.slider_feather = QSlider(Qt.Orientation.Horizontal)
         self.slider_feather.setMinimum(0)
         self.slider_feather.setMaximum(10)
@@ -253,40 +304,41 @@ class MainWindowNew(QMainWindow):
         feather_layout.addWidget(self.label_feather)
         adjust_layout.addLayout(feather_layout)
         
-        adjust_group.setLayout(adjust_layout)
-        layout.addWidget(adjust_group)
+        self.adjust_group.setLayout(adjust_layout)
+        layout.addWidget(self.adjust_group)
         
         # Background Color
-        bg_group = QGroupBox("🎨 BACKGROUND COLOR PREVIEW")
+        self.bg_group = QGroupBox(self.translator.t('bg_color_preview'))
         bg_layout = QHBoxLayout()
         
-        self.btn_pick_color = QPushButton("Pick Color")
+        self.btn_pick_color = QPushButton(self.translator.t('pick_color'))
         self.btn_pick_color.setEnabled(False)
         self.lbl_color_preview = QLabel("")
         self.lbl_color_preview.setFixedSize(50, 30)
         self.lbl_color_preview.setStyleSheet("background-color: transparent; border: 2px solid #bdc3c7; border-radius: 5px;")
-        self.btn_clear_color = QPushButton("Clear")
+        self.btn_clear_color = QPushButton(self.translator.t('clear'))
         self.btn_clear_color.setEnabled(False)
         
-        bg_layout.addWidget(QLabel("Preview with:"))
+        self.lbl_preview_with = QLabel(self.translator.t('preview_with'))
+        bg_layout.addWidget(self.lbl_preview_with)
         bg_layout.addWidget(self.btn_pick_color)
         bg_layout.addWidget(self.lbl_color_preview)
         bg_layout.addWidget(self.btn_clear_color)
         bg_layout.addStretch()
         
-        bg_group.setLayout(bg_layout)
-        layout.addWidget(bg_group)
+        self.bg_group.setLayout(bg_layout)
+        layout.addWidget(self.bg_group)
         
         # Options
-        options_group = QGroupBox("⚙️ OPTIONS")
+        self.options_group = QGroupBox(self.translator.t('options'))
         options_layout = QVBoxLayout()
         
-        self.chk_auto_crop = QCheckBox("Auto-crop output")
+        self.chk_auto_crop = QCheckBox(self.translator.t('auto_crop'))
         self.chk_auto_crop.setChecked(self.view_model.settings.auto_crop_output)
         options_layout.addWidget(self.chk_auto_crop)
         
-        options_group.setLayout(options_layout)
-        layout.addWidget(options_group)
+        self.options_group.setLayout(options_layout)
+        layout.addWidget(self.options_group)
         
         return panel
     
@@ -383,9 +435,9 @@ class MainWindowNew(QMainWindow):
         """Handle open image."""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Open Image",
+            self.translator.t('select_image'),
             "",
-            "Images (*.jpg *.jpeg *.png *.webp *.bmp)"
+            f"{self.translator.t('image_files')} (*.jpg *.jpeg *.png *.webp *.bmp)"
         )
         
         if file_path:
@@ -398,7 +450,7 @@ class MainWindowNew(QMainWindow):
             self.drop_area.hide()
             
             self.btn_process.setEnabled(True)
-            self.status_bar.showMessage(f"Loaded: {file_path}")
+            self.status_bar.showMessage(f"{self.translator.t('loaded')}: {file_path}")
     
     def dragEnterEvent(self, event: QDragEnterEvent):
         """Handle drag enter."""
@@ -418,7 +470,7 @@ class MainWindowNew(QMainWindow):
             self.drop_area.hide()
             
             self.btn_process.setEnabled(True)
-            self.status_bar.showMessage(f"Loaded: {files[0]}")
+            self.status_bar.showMessage(f"{self.translator.t('loaded')}: {files[0]}")
     
     def _on_remove_background(self):
         """Handle remove background button."""
@@ -426,7 +478,8 @@ class MainWindowNew(QMainWindow):
             return
         
         self.btn_process.setEnabled(False)
-        self.status_bar.showMessage("Processing...")
+        self.btn_process.setText(self.translator.t('processing'))
+        self.status_bar.showMessage(self.translator.t('processing'))
         
         QTimer.singleShot(100, lambda: asyncio.create_task(self._process_image()))
     
@@ -449,20 +502,23 @@ class MainWindowNew(QMainWindow):
             self.btn_pick_color.setEnabled(True)
             self.btn_clear_color.setEnabled(True)
             
+            t = self.translator.t
             self.lbl_info.setText(
-                f"✓ Processing complete!\n"
-                f"Time: {result.processing_time_ms:.0f}ms\n"
-                f"Input: {result.input_size[0]}x{result.input_size[1]}\n"
-                f"Size: {result.output_size_mb:.2f} MB"
+                f"{t('processing_complete')}\n"
+                f"{t('time')}: {result.processing_time_ms:.0f}ms\n"
+                f"{t('input')}: {result.input_size[0]}x{result.input_size[1]}\n"
+                f"{t('size')}: {result.output_size_mb:.2f} MB"
             )
             
-            self.status_bar.showMessage(f"Done! ({result.processing_time_ms:.0f}ms)")
+            self.status_bar.showMessage(f"{t('done')} ({result.processing_time_ms:.0f}ms)")
             self.view_model.last_result = result
             
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to process:\n{str(e)}")
-            self.status_bar.showMessage("Error - Processing failed")
+            t = self.translator.t
+            QMessageBox.critical(self, t('error'), f"{t('failed_process')}\n{str(e)}")
+            self.status_bar.showMessage(t('processing_failed'))
         
+        self.btn_process.setText(self.translator.t('remove_background'))
         self.btn_process.setEnabled(True)
     
     # Copy remaining methods from original main_window.py
@@ -566,9 +622,9 @@ class MainWindowNew(QMainWindow):
         
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "Save PNG",
+            self.translator.t('save_png_dialog'),
             str(default_path),
-            "PNG Image (*.png)"
+            f"{self.translator.t('png_image')} (*.png)"
         )
         
         if file_path:
@@ -576,12 +632,13 @@ class MainWindowNew(QMainWindow):
     
     async def _save_image(self, path: Path):
         """Save image asynchronously."""
+        t = self.translator.t
         try:
             await self.view_model.save_output(path)
-            self.status_bar.showMessage(f"Saved: {path}")
-            QMessageBox.information(self, "Success", f"Image saved to:\n{path}")
+            self.status_bar.showMessage(f"{t('image_saved')} {path}")
+            QMessageBox.information(self, t('success'), f"{t('image_saved')}\n{path}")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to save image:\n{str(e)}")
+            QMessageBox.critical(self, t('error'), f"{t('failed_save')}\n{str(e)}")
     
     def _on_save_mask(self):
         """Export mask - copy from original."""
@@ -591,14 +648,15 @@ class MainWindowNew(QMainWindow):
         # Ask for mask format
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QRadioButton, QDialogButtonBox
         
+        t = self.translator.t
         dialog = QDialog(self)
-        dialog.setWindowTitle("Export Mask Format")
+        dialog.setWindowTitle(t('export_mask_format'))
         layout = QVBoxLayout(dialog)
         
-        layout.addWidget(QLabel("Select mask format:"))
-        radio_grayscale = QRadioButton("Grayscale (0-255)")
-        radio_binary = QRadioButton("Binary (Black/White)")
-        radio_alpha = QRadioButton("Alpha Channel")
+        layout.addWidget(QLabel(t('select_mask_format')))
+        radio_grayscale = QRadioButton(t('grayscale'))
+        radio_binary = QRadioButton(t('binary'))
+        radio_alpha = QRadioButton(t('alpha_channel'))
         radio_grayscale.setChecked(True)
         
         layout.addWidget(radio_grayscale)
@@ -802,7 +860,7 @@ class MainWindowNew(QMainWindow):
         
         # Show drop area overlay again
         self.drop_area.show()
-        self.drop_area.setText("Drag & Drop Image Here\nor Click to Browse")
+        self.drop_area.setText(self.translator.t('drag_drop_text'))
         self.drop_area.setStyleSheet("""
             QLabel {
                 border: 3px dashed #3498db;
@@ -826,5 +884,75 @@ class MainWindowNew(QMainWindow):
         self.btn_pick_color.setEnabled(False)
         self.btn_clear_color.setEnabled(False)
         
-        self.lbl_info.setText("No image processed yet")
-        self.status_bar.showMessage("Ready - Drag & drop image to start")
+        self.lbl_info.setText(self.translator.t('no_image_processed'))
+        self.status_bar.showMessage(self.translator.t('status_ready'))
+    
+    def _on_language_changed(self, index: int):
+        """Handle language change."""
+        lang_code = self.lang_selector.itemData(index)
+        self.translator.set_language(lang_code)
+        self._refresh_ui_text()
+    
+    def _refresh_ui_text(self):
+        """Refresh all UI text with current language."""
+        t = self.translator.t
+        
+        # Window title
+        self.setWindowTitle(t('window_title'))
+        
+        # GroupBox titles
+        self.input_group.setTitle(t('input_image'))
+        self.actions_group.setTitle(t('save_export'))
+        self.output_group.setTitle(t('output_preview'))
+        self.info_group.setTitle(t('processing_info'))
+        self.adjust_group.setTitle(t('fine_tune'))
+        self.bg_group.setTitle(t('bg_color_preview'))
+        self.options_group.setTitle(t('options'))
+        
+        # Status bar
+        if not self.input_image_path:
+            self.status_bar.showMessage(t('status_ready'))
+        
+        # Drop area
+        if self.drop_area.isVisible():
+            self.drop_area.setText(t('drag_drop_text'))
+        
+        # Buttons
+        self.btn_process.setText(t('remove_background'))
+        self.btn_save.setText(t('save_png'))
+        self.btn_save.setToolTip(t('save_png_tooltip'))
+        self.btn_export_mask.setText(t('mask'))
+        self.btn_export_mask.setToolTip(t('mask_tooltip'))
+        self.btn_batch.setText(t('batch'))
+        self.btn_batch.setToolTip(t('batch_tooltip'))
+        self.btn_reset.setText(t('reset'))
+        
+        # Preview buttons
+        self.btn_fit_input.setText(t('fit'))
+        self.btn_zoom_in_input.setText(t('zoom_in'))
+        self.btn_zoom_out_input.setText(t('zoom_out'))
+        self.btn_fit_output.setText(t('fit'))
+        self.btn_zoom_in_output.setText(t('zoom_in'))
+        self.btn_zoom_out_output.setText(t('zoom_out'))
+        self.chk_checkerboard.setText(t('checkerboard'))
+        
+        # Adjustment labels
+        self.lbl_threshold_title.setText(t('threshold'))
+        self.lbl_smooth_title.setText(t('smooth'))
+        self.lbl_feather_title.setText(t('feather'))
+        self.label_threshold.setText(f"{self.view_model.settings.threshold:.2f}")
+        self.label_smooth.setText(f"{self.view_model.settings.smooth_pixels} px")
+        self.label_feather.setText(f"{self.view_model.settings.feather_pixels} px")
+        
+        # Background color buttons
+        self.lbl_preview_with.setText(t('preview_with'))
+        self.btn_pick_color.setText(t('pick_color'))
+        self.btn_clear_color.setText(t('clear'))
+        
+        # Checkbox
+        self.chk_auto_crop.setText(t('auto_crop'))
+        
+        # Info text
+        if not self.view_model.last_result:
+            self.lbl_info.setText(t('no_image_processed'))
+
