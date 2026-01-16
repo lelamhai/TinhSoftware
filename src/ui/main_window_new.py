@@ -156,17 +156,80 @@ class MainWindowNew(QMainWindow):
         self.drop_area.setParent(self.preview_input)
         self.drop_area.setGeometry(30, 100, 540, 200)
         
-        # Preview controls
-        controls = QHBoxLayout()
-        self.btn_fit_input = QPushButton(self.translator.t('fit'))
-        self.btn_zoom_in_input = QPushButton(self.translator.t('zoom_in'))
-        self.btn_zoom_out_input = QPushButton(self.translator.t('zoom_out'))
-        self.lbl_zoom_input = QLabel("100%")
+        # Zoom controls overlay (top-left corner)
+        zoom_controls_widget = QWidget(self.preview_input)
+        zoom_controls_layout = QVBoxLayout(zoom_controls_widget)
+        zoom_controls_layout.setContentsMargins(0, 0, 0, 0)
+        zoom_controls_layout.setSpacing(8)
         
-        controls.addWidget(self.btn_fit_input)
-        controls.addWidget(self.btn_zoom_in_input)
-        controls.addWidget(self.btn_zoom_out_input)
-        controls.addWidget(self.lbl_zoom_input)
+        self.btn_fit_input = QPushButton("⛶")
+        self.btn_zoom_in_input = QPushButton("+")
+        self.btn_zoom_out_input = QPushButton("−")
+        
+        # Modern circular button style with shadow and gradient
+        icon_button_style = """
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(255, 255, 255, 0.95), 
+                    stop:1 rgba(245, 245, 245, 0.95));
+                border: none;
+                border-radius: 20px;
+                padding: 0px;
+                font-size: 18px;
+                font-weight: bold;
+                color: #3498db;
+                min-width: 40px;
+                min-height: 40px;
+                max-width: 40px;
+                max-height: 40px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #3498db, 
+                    stop:1 #2980b9);
+                border: none;
+                color: white;
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2980b9, 
+                    stop:1 #21618c);
+                border: none;
+                color: white;
+            }
+        """
+        self.btn_fit_input.setStyleSheet(icon_button_style)
+        self.btn_zoom_in_input.setStyleSheet(icon_button_style)
+        self.btn_zoom_out_input.setStyleSheet(icon_button_style)
+        
+        self.btn_fit_input.setToolTip(self.translator.t('fit'))
+        self.btn_zoom_in_input.setToolTip(self.translator.t('zoom_in'))
+        self.btn_zoom_out_input.setToolTip(self.translator.t('zoom_out'))
+        
+        # Add shadow effect
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+        from PyQt6.QtGui import QColor
+        for btn in [self.btn_fit_input, self.btn_zoom_in_input, self.btn_zoom_out_input]:
+            shadow = QGraphicsDropShadowEffect()
+            shadow.setBlurRadius(8)
+            shadow.setColor(QColor(0, 0, 0, 80))
+            shadow.setOffset(0, 2)
+            btn.setGraphicsEffect(shadow)
+        
+        zoom_controls_layout.addWidget(self.btn_fit_input)
+        zoom_controls_layout.addWidget(self.btn_zoom_in_input)
+        zoom_controls_layout.addWidget(self.btn_zoom_out_input)
+        
+        zoom_controls_widget.setGeometry(10, 10, 40, 136)
+        zoom_controls_widget.setStyleSheet("background: transparent; border: none;")
+        
+        # Change image button (below preview)
+        controls = QHBoxLayout()
+        self.btn_change_image = QPushButton("📁 " + self.translator.t('change_image'))
+        self.btn_change_image.setMinimumHeight(35)
+        self.btn_change_image.setVisible(False)  # Hidden initially
+        self.btn_change_image.clicked.connect(self._on_open_image)
+        controls.addWidget(self.btn_change_image)
         controls.addStretch()
         input_layout.addLayout(controls)
         
@@ -265,32 +328,38 @@ class MainWindowNew(QMainWindow):
         # Background Color Preview
         self.bg_group = QGroupBox(self.translator.t('bg_color_preview'))
         bg_layout = QVBoxLayout()
+        bg_layout.setSpacing(10)
         
-        # Checkerboard checkbox (moved to top)
+        # Checkerboard checkbox
         self.chk_checkerboard = QCheckBox(self.translator.t('checkerboard'))
         self.chk_checkerboard.setChecked(True)
         bg_layout.addWidget(self.chk_checkerboard)
         
-        # Color picker row
-        color_row = QHBoxLayout()
-        self.lbl_preview_with = QLabel(self.translator.t('preview_with'))
-        color_row.addWidget(self.lbl_preview_with)
+        # Color picker section
+        color_container = QWidget()
+        color_layout = QHBoxLayout(color_container)
+        color_layout.setContentsMargins(0, 5, 0, 5)
+        color_layout.setSpacing(10)
         
         self.btn_pick_color = QPushButton(self.translator.t('pick_color'))
         self.btn_pick_color.setEnabled(False)
-        color_row.addWidget(self.btn_pick_color)
+        self.btn_pick_color.setMinimumHeight(40)
+        self.btn_pick_color.setToolTip(self.translator.t('pick_color_tooltip') if hasattr(self.translator, 't') else "Click to pick color, double-click to clear")
+        color_layout.addWidget(self.btn_pick_color, stretch=2)
         
+        # Color preview box (larger) - double-click to clear
         self.lbl_color_preview = QLabel("")
-        self.lbl_color_preview.setFixedSize(50, 30)
-        self.lbl_color_preview.setStyleSheet("background-color: transparent; border: 2px solid #bdc3c7; border-radius: 5px;")
-        color_row.addWidget(self.lbl_color_preview)
+        self.lbl_color_preview.setFixedSize(80, 40)
+        self.lbl_color_preview.setStyleSheet(
+            "background-color: transparent; "
+            "border: 2px solid #bdc3c7; "
+            "border-radius: 8px;"
+        )
+        self.lbl_color_preview.setToolTip("Double-click to clear color")
+        self.lbl_color_preview.mouseDoubleClickEvent = lambda e: self._on_clear_color()
+        color_layout.addWidget(self.lbl_color_preview)
         
-        self.btn_clear_color = QPushButton(self.translator.t('clear'))
-        self.btn_clear_color.setEnabled(False)
-        color_row.addWidget(self.btn_clear_color)
-        
-        color_row.addStretch()
-        bg_layout.addLayout(color_row)
+        bg_layout.addWidget(color_container)
         
         self.bg_group.setLayout(bg_layout)
         layout.addWidget(self.bg_group)
@@ -306,19 +375,19 @@ class MainWindowNew(QMainWindow):
         self.options_group.setLayout(options_layout)
         layout.addWidget(self.options_group)
         
-        # Save & Export Buttons (moved to bottom)
+        # Save & Export Button (moved to bottom)
         self.actions_group = QGroupBox(self.translator.t('save_export'))
         actions_layout = QVBoxLayout()
         
-        # Row 1: Save PNG (primary)
+        # Save PNG button only
         self.btn_save = QPushButton(self.translator.t('save_png'))
-        self.btn_save.setMinimumHeight(50)
+        self.btn_save.setMinimumHeight(55)
         self.btn_save.setEnabled(False)
         self.btn_save.setToolTip(self.translator.t('save_png_tooltip'))
         self.btn_save.setStyleSheet("""
             QPushButton {
                 background: #27ae60;
-                font-size: 15px;
+                font-size: 16px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -326,21 +395,6 @@ class MainWindowNew(QMainWindow):
             }
         """)
         actions_layout.addWidget(self.btn_save)
-        
-        # Row 2: Mask & Batch (secondary)
-        row2 = QHBoxLayout()
-        self.btn_export_mask = QPushButton(self.translator.t('mask'))
-        self.btn_export_mask.setMinimumHeight(40)
-        self.btn_export_mask.setEnabled(False)
-        self.btn_export_mask.setToolTip(self.translator.t('mask_tooltip'))
-        
-        self.btn_batch = QPushButton(self.translator.t('batch'))
-        self.btn_batch.setMinimumHeight(40)
-        self.btn_batch.setToolTip(self.translator.t('batch_tooltip'))
-        
-        row2.addWidget(self.btn_export_mask)
-        row2.addWidget(self.btn_batch)
-        actions_layout.addLayout(row2)
         
         self.actions_group.setLayout(actions_layout)
         layout.addWidget(self.actions_group)
@@ -404,18 +458,20 @@ class MainWindowNew(QMainWindow):
             }
         """)
     
+    def _update_zoom_label(self):
+        """Update zoom percentage label (removed - no longer used)."""
+        pass
+    
     def _connect_signals(self):
         """Connect UI signals."""
         # Preview controls (only input preview now)
-        self.btn_fit_input.clicked.connect(lambda: self.preview_input.fit_to_view())
-        self.btn_zoom_in_input.clicked.connect(lambda: self.preview_input.zoom_in())
-        self.btn_zoom_out_input.clicked.connect(lambda: self.preview_input.zoom_out())
+        self.btn_fit_input.clicked.connect(self._on_fit_view)
+        self.btn_zoom_in_input.clicked.connect(self._on_zoom_in)
+        self.btn_zoom_out_input.clicked.connect(self._on_zoom_out)
         
         # Action buttons - Process button toggles between remove/reset
         self.btn_process.clicked.connect(self._on_process_clicked)
         self.btn_save.clicked.connect(self._on_save_image)
-        self.btn_export_mask.clicked.connect(self._on_save_mask)
-        self.btn_batch.clicked.connect(self._on_batch_process)
         
         # Sliders
         self.slider_threshold.valueChanged.connect(self._on_threshold_changed)
@@ -424,11 +480,25 @@ class MainWindowNew(QMainWindow):
         
         # Background color
         self.btn_pick_color.clicked.connect(self._on_pick_color)
-        self.btn_clear_color.clicked.connect(self._on_clear_color)
         
         # Options
         self.chk_auto_crop.stateChanged.connect(self._on_auto_crop_changed)
         self.chk_checkerboard.stateChanged.connect(self._on_checkerboard_changed)
+    
+    def _on_fit_view(self):
+        """Handle fit to view button."""
+        self.preview_input.fit_to_view()
+        self._update_zoom_label()
+    
+    def _on_zoom_in(self):
+        """Handle zoom in button."""
+        self.preview_input.zoom_in()
+        self._update_zoom_label()
+    
+    def _on_zoom_out(self):
+        """Handle zoom out button."""
+        self.preview_input.zoom_out()
+        self._update_zoom_label()
     
     def _on_process_clicked(self):
         """Handle process button click - toggles between remove background and reset."""
@@ -457,8 +527,9 @@ class MainWindowNew(QMainWindow):
             self.preview_input.set_image(pixmap, use_checkerboard=False)
             self.preview_input.fit_to_view()
             
-            # Hide drop area overlay when image is loaded
+            # Hide drop area overlay, show change image button
             self.drop_area.hide()
+            self.btn_change_image.setVisible(True)
             
             self.btn_process.setEnabled(True)
             self.status_bar.showMessage(f"{self.translator.t('loaded')}: {file_path}")
@@ -477,8 +548,9 @@ class MainWindowNew(QMainWindow):
             self.preview_input.set_image(pixmap, use_checkerboard=False)
             self.preview_input.fit_to_view()
             
-            # Hide drop area overlay when image is loaded
+            # Hide drop area overlay, show change image button
             self.drop_area.hide()
+            self.btn_change_image.setVisible(True)
             
             self.btn_process.setEnabled(True)
             self.status_bar.showMessage(f"{self.translator.t('loaded')}: {files[0]}")
@@ -529,11 +601,9 @@ class MainWindowNew(QMainWindow):
                 }
             """)
             
-            # Enable save buttons
+            # Enable save button and color picker
             self.btn_save.setEnabled(True)
-            self.btn_export_mask.setEnabled(True)
             self.btn_pick_color.setEnabled(True)
-            self.btn_clear_color.setEnabled(True)
             
             # Update info
             t = self.translator.t
@@ -598,7 +668,8 @@ class MainWindowNew(QMainWindow):
             self.bg_color = (color.red(), color.green(), color.blue())
             self.lbl_color_preview.setStyleSheet(
                 f"background-color: rgb({color.red()}, {color.green()}, {color.blue()}); "
-                f"border: 2px solid #bdc3c7; border-radius: 5px;"
+                f"border: 2px solid #bdc3c7; "
+                f"border-radius: 8px;"
             )
             
             # Tự động uncheck checkerboard khi pick color
@@ -609,7 +680,11 @@ class MainWindowNew(QMainWindow):
     
     def _on_clear_color(self):
         self.bg_color = None
-        self.lbl_color_preview.setStyleSheet("background-color: transparent; border: 2px solid #bdc3c7; border-radius: 5px;")
+        self.lbl_color_preview.setStyleSheet(
+            "background-color: transparent; "
+            "border: 2px solid #bdc3c7; "
+            "border-radius: 8px;"
+        )
         
         # Tự động check checkerboard khi clear color
         self.chk_checkerboard.setChecked(True)
@@ -938,9 +1013,7 @@ class MainWindowNew(QMainWindow):
             
             # Disable save buttons
             self.btn_save.setEnabled(False)
-            self.btn_export_mask.setEnabled(False)
             self.btn_pick_color.setEnabled(False)
-            self.btn_clear_color.setEnabled(False)
             
             # Reset info
             self.lbl_info.setText(self.translator.t('no_image_processed'))
@@ -960,9 +1033,7 @@ class MainWindowNew(QMainWindow):
             
             self.btn_process.setEnabled(False)
             self.btn_save.setEnabled(False)
-            self.btn_export_mask.setEnabled(False)
             self.btn_pick_color.setEnabled(False)
-            self.btn_clear_color.setEnabled(False)
         
         self.lbl_info.setText(self.translator.t('no_image_processed'))
         self.status_bar.showMessage(self.translator.t('status_ready'))
@@ -1006,15 +1077,11 @@ class MainWindowNew(QMainWindow):
         # Save buttons
         self.btn_save.setText(t('save_png'))
         self.btn_save.setToolTip(t('save_png_tooltip'))
-        self.btn_export_mask.setText(t('mask'))
-        self.btn_export_mask.setToolTip(t('mask_tooltip'))
-        self.btn_batch.setText(t('batch'))
-        self.btn_batch.setToolTip(t('batch_tooltip'))
         
-        # Preview buttons
-        self.btn_fit_input.setText(t('fit'))
-        self.btn_zoom_in_input.setText(t('zoom_in'))
-        self.btn_zoom_out_input.setText(t('zoom_out'))
+        # Preview buttons - update tooltips only (using icons)
+        self.btn_fit_input.setToolTip(t('fit'))
+        self.btn_zoom_in_input.setToolTip(t('zoom_in'))
+        self.btn_zoom_out_input.setToolTip(t('zoom_out'))
         self.chk_checkerboard.setText(t('checkerboard'))
         
         # Adjustment labels

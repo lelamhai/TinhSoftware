@@ -10,6 +10,7 @@ TRANSLATIONS = {
         'input_image': '🖼️ INPUT IMAGE',
         'drag_drop_text': 'Drag & Drop Image Here\nor Click to Browse',
         'loaded': 'Loaded',
+        'change_image': 'Change Image',
         
         # Process button
         'remove_background': '🎯 REMOVE BACKGROUND',
@@ -128,6 +129,7 @@ TRANSLATIONS = {
         'input_image': '🖼️ ẢNH ĐẦU VÀO',
         'drag_drop_text': 'Kéo Thả Ảnh Vào Đây\nhoặc Nhấn để Chọn File',
         'loaded': 'Đã tải',
+        'change_image': 'Đổi Ảnh',
         
         # Process button
         'remove_background': '🎯 XÓA PHÔNG NỀN',
