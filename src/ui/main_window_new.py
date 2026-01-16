@@ -613,12 +613,12 @@ class MainWindowNew(QMainWindow):
             result_rgb = np.clip(result_rgb, 0, 255).astype(np.uint8)
             
             result = np.dstack([result_rgb, np.full((rgba.shape[0], rgba.shape[1]), 255, dtype=np.uint8)])
-            # Show on INPUT preview (overlay result)
-            self.preview_input.set_image_from_array(result, use_checkerboard=False)
+            # Update image while keeping zoom/pan
+            self.preview_input.update_image_from_array_keep_view(result, use_checkerboard=False)
         else:
             use_checkerboard = self.chk_checkerboard.isChecked()
-            # Show on INPUT preview (overlay result)
-            self.preview_input.set_image_from_array(rgba, use_checkerboard=use_checkerboard)
+            # Update image while keeping zoom/pan
+            self.preview_input.update_image_from_array_keep_view(rgba, use_checkerboard=use_checkerboard)
     
     def _reprocess_with_settings(self):
         if not hasattr(self, 'raw_mask') or self.raw_mask is None:

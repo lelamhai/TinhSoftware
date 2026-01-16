@@ -94,6 +94,64 @@ class ImagePreviewWidget(QLabel):
         pixmap = QPixmap.fromImage(qimage.copy())
         self.set_image(pixmap, use_checkerboard)
     
+    def update_image_keep_view(self, pixmap: QPixmap, use_checkerboard: bool = False):
+        """
+        Update image while preserving zoom and pan state.
+        
+        Args:
+            pixmap: New image to display
+            use_checkerboard: Whether to show checkerboard background
+        """
+        self.original_pixmap = pixmap
+        self.show_checkerboard = use_checkerboard
+        # Don't reset zoom_factor and pan_offset!
+        self.update_display()
+    
+    def update_image_from_array_keep_view(self, image_array: np.ndarray, use_checkerboard: bool = False):
+        """
+        Update image from numpy array while preserving zoom and pan state.
+        
+        Args:
+            image_array: Image array (RGB or RGBA)
+            use_checkerboard: Whether to show checkerboard background
+        """
+        height, width = image_array.shape[:2]
+        channels = image_array.shape[2] if image_array.ndim == 3 else 1
+        
+        if channels == 4:
+            # RGBA
+            bytes_per_line = 4 * width
+            qimage = QImage(
+                image_array.data,
+                width,
+                height,
+                bytes_per_line,
+                QImage.Format.Format_RGBA8888
+            )
+        elif channels == 3:
+            # RGB
+            bytes_per_line = 3 * width
+            qimage = QImage(
+                image_array.data,
+                width,
+                height,
+                bytes_per_line,
+                QImage.Format.Format_RGB888
+            )
+        else:
+            # Grayscale
+            bytes_per_line = width
+            qimage = QImage(
+                image_array.data,
+                width,
+                height,
+                bytes_per_line,
+                QImage.Format.Format_Grayscale8
+            )
+        
+        pixmap = QPixmap.fromImage(qimage.copy())
+        self.update_image_keep_view(pixmap, use_checkerboard)
+    
     def clear_image(self):
         """Clear displayed image."""
         self.original_pixmap = None
