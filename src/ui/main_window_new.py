@@ -162,15 +162,12 @@ class MainWindowNew(QMainWindow):
         self.btn_zoom_in_input = QPushButton(self.translator.t('zoom_in'))
         self.btn_zoom_out_input = QPushButton(self.translator.t('zoom_out'))
         self.lbl_zoom_input = QLabel("100%")
-        self.chk_checkerboard = QCheckBox(self.translator.t('checkerboard'))
-        self.chk_checkerboard.setChecked(True)
         
         controls.addWidget(self.btn_fit_input)
         controls.addWidget(self.btn_zoom_in_input)
         controls.addWidget(self.btn_zoom_out_input)
         controls.addWidget(self.lbl_zoom_input)
         controls.addStretch()
-        controls.addWidget(self.chk_checkerboard)
         input_layout.addLayout(controls)
         
         self.input_group.setLayout(input_layout)
@@ -265,29 +262,51 @@ class MainWindowNew(QMainWindow):
         self.adjust_group.setLayout(adjust_layout)
         layout.addWidget(self.adjust_group)
         
-        # Background Color
+        # Background Color Preview
         self.bg_group = QGroupBox(self.translator.t('bg_color_preview'))
-        bg_layout = QHBoxLayout()
+        bg_layout = QVBoxLayout()
+        
+        # Checkerboard checkbox (moved to top)
+        self.chk_checkerboard = QCheckBox(self.translator.t('checkerboard'))
+        self.chk_checkerboard.setChecked(True)
+        bg_layout.addWidget(self.chk_checkerboard)
+        
+        # Color picker row
+        color_row = QHBoxLayout()
+        self.lbl_preview_with = QLabel(self.translator.t('preview_with'))
+        color_row.addWidget(self.lbl_preview_with)
         
         self.btn_pick_color = QPushButton(self.translator.t('pick_color'))
         self.btn_pick_color.setEnabled(False)
+        color_row.addWidget(self.btn_pick_color)
+        
         self.lbl_color_preview = QLabel("")
         self.lbl_color_preview.setFixedSize(50, 30)
         self.lbl_color_preview.setStyleSheet("background-color: transparent; border: 2px solid #bdc3c7; border-radius: 5px;")
+        color_row.addWidget(self.lbl_color_preview)
+        
         self.btn_clear_color = QPushButton(self.translator.t('clear'))
         self.btn_clear_color.setEnabled(False)
+        color_row.addWidget(self.btn_clear_color)
         
-        self.lbl_preview_with = QLabel(self.translator.t('preview_with'))
-        bg_layout.addWidget(self.lbl_preview_with)
-        bg_layout.addWidget(self.btn_pick_color)
-        bg_layout.addWidget(self.lbl_color_preview)
-        bg_layout.addWidget(self.btn_clear_color)
-        bg_layout.addStretch()
+        color_row.addStretch()
+        bg_layout.addLayout(color_row)
         
         self.bg_group.setLayout(bg_layout)
         layout.addWidget(self.bg_group)
         
-        # Save & Export Buttons
+        # Options
+        self.options_group = QGroupBox(self.translator.t('options'))
+        options_layout = QVBoxLayout()
+        
+        self.chk_auto_crop = QCheckBox(self.translator.t('auto_crop'))
+        self.chk_auto_crop.setChecked(self.view_model.settings.auto_crop_output)
+        options_layout.addWidget(self.chk_auto_crop)
+        
+        self.options_group.setLayout(options_layout)
+        layout.addWidget(self.options_group)
+        
+        # Save & Export Buttons (moved to bottom)
         self.actions_group = QGroupBox(self.translator.t('save_export'))
         actions_layout = QVBoxLayout()
         
@@ -325,17 +344,6 @@ class MainWindowNew(QMainWindow):
         
         self.actions_group.setLayout(actions_layout)
         layout.addWidget(self.actions_group)
-        
-        # Options
-        self.options_group = QGroupBox(self.translator.t('options'))
-        options_layout = QVBoxLayout()
-        
-        self.chk_auto_crop = QCheckBox(self.translator.t('auto_crop'))
-        self.chk_auto_crop.setChecked(self.view_model.settings.auto_crop_output)
-        options_layout.addWidget(self.chk_auto_crop)
-        
-        self.options_group.setLayout(options_layout)
-        layout.addWidget(self.options_group)
         
         return panel
     
@@ -567,6 +575,15 @@ class MainWindowNew(QMainWindow):
         self.view_model.settings.auto_crop_output = (state == Qt.CheckState.Checked.value)
     
     def _on_checkerboard_changed(self, state: int):
+        if state == 0:  # Unchecked
+            # Set màu trắng mặc định
+            if self.bg_color is None:
+                self.bg_color = (255, 255, 255)
+                self.lbl_color_preview.setStyleSheet(
+                    "background-color: rgb(255, 255, 255); "
+                    "border: 2px solid #bdc3c7; border-radius: 5px;"
+                )
+        
         if hasattr(self, 'transparent_result') and self.transparent_result is not None:
             self._update_preview_with_background()
     
@@ -584,12 +601,18 @@ class MainWindowNew(QMainWindow):
                 f"border: 2px solid #bdc3c7; border-radius: 5px;"
             )
             
+            # Tự động uncheck checkerboard khi pick color
+            self.chk_checkerboard.setChecked(False)
+            
             if hasattr(self, 'transparent_result'):
                 self._update_preview_with_background()
     
     def _on_clear_color(self):
         self.bg_color = None
         self.lbl_color_preview.setStyleSheet("background-color: transparent; border: 2px solid #bdc3c7; border-radius: 5px;")
+        
+        # Tự động check checkerboard khi clear color
+        self.chk_checkerboard.setChecked(True)
         
         if hasattr(self, 'transparent_result'):
             self._update_preview_with_background()
@@ -602,7 +625,14 @@ class MainWindowNew(QMainWindow):
         
         rgba = self.transparent_result.copy()
         
-        if self.bg_color is not None:
+        # Check checkerboard state first
+        use_checkerboard = self.chk_checkerboard.isChecked()
+        
+        if use_checkerboard:
+            # Show with checkerboard pattern
+            self.preview_input.update_image_from_array_keep_view(rgba, use_checkerboard=True)
+        elif self.bg_color is not None:
+            # Show with solid color background
             rgb = rgba[:, :, :3].astype(np.float32)
             alpha = rgba[:, :, 3:4].astype(np.float32) / 255.0
             
@@ -613,12 +643,10 @@ class MainWindowNew(QMainWindow):
             result_rgb = np.clip(result_rgb, 0, 255).astype(np.uint8)
             
             result = np.dstack([result_rgb, np.full((rgba.shape[0], rgba.shape[1]), 255, dtype=np.uint8)])
-            # Update image while keeping zoom/pan
             self.preview_input.update_image_from_array_keep_view(result, use_checkerboard=False)
         else:
-            use_checkerboard = self.chk_checkerboard.isChecked()
-            # Update image while keeping zoom/pan
-            self.preview_input.update_image_from_array_keep_view(rgba, use_checkerboard=use_checkerboard)
+            # No color and no checkerboard - shouldn't happen, but show transparent
+            self.preview_input.update_image_from_array_keep_view(rgba, use_checkerboard=False)
     
     def _reprocess_with_settings(self):
         if not hasattr(self, 'raw_mask') or self.raw_mask is None:
