@@ -223,44 +223,79 @@ class MainWindowNew(QMainWindow):
         zoom_controls_widget.setGeometry(10, 10, 40, 136)
         zoom_controls_widget.setStyleSheet("background: transparent; border: none;")
         
-        # Change image button (below preview)
-        controls = QHBoxLayout()
-        self.btn_change_image = QPushButton("📁 " + self.translator.t('change_image'))
-        self.btn_change_image.setMinimumHeight(35)
-        self.btn_change_image.setVisible(False)  # Hidden initially
-        self.btn_change_image.clicked.connect(self._on_open_image)
-        controls.addWidget(self.btn_change_image)
-        controls.addStretch()
-        input_layout.addLayout(controls)
-        
         self.input_group.setLayout(input_layout)
         layout.addWidget(self.input_group, stretch=1)
         
-        # Big Process Button (toggles between Remove/Reset)
+        # Action buttons container (modern card design)
+        actions_container = QWidget()
+        actions_container.setStyleSheet("""
+            QWidget {
+                background: white;
+                border-radius: 12px;
+                border: 1px solid #e0e0e0;
+            }
+        """)
+        actions_layout = QHBoxLayout(actions_container)
+        actions_layout.setContentsMargins(15, 15, 15, 15)
+        actions_layout.setSpacing(12)
+        
+        # Change Image Button (modern design with icon)
+        self.btn_change_image = QPushButton("📁  " + self.translator.t('change_image'))
+        self.btn_change_image.setMinimumHeight(55)
+        self.btn_change_image.clicked.connect(self._on_open_image)
+        self.btn_change_image.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #6c757d, stop:1 #495057);
+                color: white;
+                font-size: 16px;
+                font-weight: bold;
+                border: none;
+                border-radius: 8px;
+                padding: 12px 20px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #5a6268, stop:1 #343a40);
+            }
+            QPushButton:pressed {
+                background: #343a40;
+            }
+        """)
+        actions_layout.addWidget(self.btn_change_image, stretch=1)
+        
+        # Process Button (Remove Background / Reset)
         self.btn_process = QPushButton(self.translator.t('remove_background'))
-        self.btn_process.setMinimumHeight(70)
+        self.btn_process.setMinimumHeight(55)
         self.btn_process.setEnabled(False)
-        self.btn_process.setProperty('is_reset_mode', False)  # Track button state
+        self.btn_process.setProperty('is_reset_mode', False)
         self.btn_process.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #3498db, stop:1 #2ecc71);
                 color: white;
-                font-size: 20px;
+                font-size: 16px;
                 font-weight: bold;
                 border: none;
-                border-radius: 10px;
-                padding: 15px;
+                border-radius: 8px;
+                padding: 12px 20px;
             }
             QPushButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #2980b9, stop:1 #27ae60);
             }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #21618c, stop:1 #1e8449);
+            }
             QPushButton:disabled {
                 background: #bdc3c7;
+                color: #95a5a6;
             }
         """)
-        layout.addWidget(self.btn_process)
+        actions_layout.addWidget(self.btn_process, stretch=2)
+        
+        layout.addWidget(actions_container)
         
         return panel
     
@@ -527,9 +562,8 @@ class MainWindowNew(QMainWindow):
             self.preview_input.set_image(pixmap, use_checkerboard=False)
             self.preview_input.fit_to_view()
             
-            # Hide drop area overlay, show change image button
+            # Hide drop area overlay
             self.drop_area.hide()
-            self.btn_change_image.setVisible(True)
             
             self.btn_process.setEnabled(True)
             self.status_bar.showMessage(f"{self.translator.t('loaded')}: {file_path}")
@@ -548,9 +582,8 @@ class MainWindowNew(QMainWindow):
             self.preview_input.set_image(pixmap, use_checkerboard=False)
             self.preview_input.fit_to_view()
             
-            # Hide drop area overlay, show change image button
+            # Hide drop area overlay
             self.drop_area.hide()
-            self.btn_change_image.setVisible(True)
             
             self.btn_process.setEnabled(True)
             self.status_bar.showMessage(f"{self.translator.t('loaded')}: {files[0]}")
