@@ -1,7 +1,7 @@
 """Image preview widget with checkerboard background."""
 from PyQt6.QtWidgets import QLabel, QSizePolicy
 from PyQt6.QtCore import Qt, QPoint, QRect
-from PyQt6.QtGui import QPixmap, QPainter, QImage, QPen, QColor, QWheelEvent, QMouseEvent
+from PyQt6.QtGui import QPixmap, QPainter, QImage, QPen, QColor, QWheelEvent, QMouseEvent, QPaintEvent
 import numpy as np
 
 
@@ -28,8 +28,12 @@ class ImagePreviewWidget(QLabel):
         self.last_pan_point = QPoint()
         self.is_panning = False
         
+        # Cached display pixmap
+        self.display_pixmap: QPixmap | None = None
+        
         # Enable mouse tracking
         self.setMouseTracking(True)
+        self.setStyleSheet("border: 1px solid #ddd;")
     
     def set_image(self, pixmap: QPixmap, use_checkerboard: bool = False):
         """
@@ -103,19 +107,20 @@ class ImagePreviewWidget(QLabel):
         
         # Create a pixmap with checkerboard if needed
         if self.show_checkerboard:
-            display_pixmap = self._create_checkerboard_image(self.original_pixmap)
+            base_pixmap = self._create_checkerboard_image(self.original_pixmap)
         else:
-            display_pixmap = self.original_pixmap
+            base_pixmap = self.original_pixmap
         
         # Apply zoom
-        scaled_size = display_pixmap.size() * self.zoom_factor
-        scaled_pixmap = display_pixmap.scaled(
+        scaled_size = base_pixmap.size() * self.zoom_factor
+        self.display_pixmap = base_pixmap.scaled(
             scaled_size,
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
         
-        self.setPixmap(scaled_pixmap)
+        # Trigger repaint
+        self.update()
     
     def _create_checkerboard_image(self, pixmap: QPixmap) -> QPixmap:
         """
@@ -207,15 +212,42 @@ class ImagePreviewWidget(QLabel):
     
     def mouseMoveEvent(self, event: QMouseEvent):
         """Handle mouse move for panning."""
-        if self.is_panning:
+        if self.is_panning and self.display_pixmap:
             delta = event.pos() - self.last_pan_point
             self.pan_offset += delta
             self.last_pan_point = event.pos()
-            # Note: Pan functionality would require custom paintEvent
-            # For simplicity, we're keeping it basic in Phase 2
+            self.update()  # Trigger repaint
     
     def mouseReleaseEvent(self, event: QMouseEvent):
         """Handle mouse release."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.is_panning = False
             self.setCursor(Qt.CursorShape.ArrowCursor)
+    
+    def paintEvent(self, event: QPaintEvent):
+        """Custom paint to handle pan offset."""
+        if self.display_pixmap is None:
+            super().paintEvent(event)
+            return
+        
+        painter = QPainter(self)
+        
+        # Calculate centered position
+        widget_rect = self.rect()
+        pixmap_rect = self.display_pixmap.rect()
+        
+        # Center the image
+        x = (widget_rect.width() - pixmap_rect.width()) // 2
+        y = (widget_rect.height() - pixmap_rect.height()) // 2
+        
+        # Apply pan offset
+        x += self.pan_offset.x()
+        y += self.pan_offset.y()
+        
+        # Draw background
+        painter.fillRect(widget_rect, QColor(240, 240, 240))
+        
+        # Draw the image
+        painter.drawPixmap(x, y, self.display_pixmap)
+        
+        painter.end()
