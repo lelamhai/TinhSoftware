@@ -13,12 +13,12 @@ TRANSLATIONS = {
         'change_image': 'Change Image',
         
         # Process button
-        'remove_background': '🎯 REMOVE BACKGROUND',
+        'remove_background': 'Remove Background',
         'processing': '⏳ Processing...',
         
         # Save & Export
         'save_export': '💾 SAVE & EXPORT',
-        'save_png': '💾 Save PNG',
+        'save_png': 'Save PNG',
         'save_png_tooltip': 'Save as transparent PNG',
         'mask': '📄 Mask',
         'mask_tooltip': 'Export mask in different formats',
@@ -26,7 +26,7 @@ TRANSLATIONS = {
         'batch_tooltip': 'Batch process multiple images',
         
         # Reset
-        'reset': '🔄 Reset',
+        'reset': 'Reset',
         
         # Output section
         'output_preview': '✨ OUTPUT PREVIEW',
@@ -132,12 +132,12 @@ TRANSLATIONS = {
         'change_image': 'Đổi Ảnh',
         
         # Process button
-        'remove_background': '🎯 XÓA PHÔNG NỀN',
+        'remove_background': 'Xóa Phông Nền',
         'processing': '⏳ Đang xử lý...',
         
         # Save & Export
         'save_export': '💾 LƯU & XUẤT',
-        'save_png': '💾 Lưu PNG',
+        'save_png': 'Lưu PNG',
         'save_png_tooltip': 'Lưu dạng PNG trong suốt',
         'mask': '📄 Mask',
         'mask_tooltip': 'Xuất mask theo định dạng khác',
@@ -145,7 +145,7 @@ TRANSLATIONS = {
         'batch_tooltip': 'Xử lý nhiều ảnh cùng lúc',
         
         # Reset
-        'reset': '🔄 Làm mới',
+        'reset': 'Làm mới',
         
         # Output section
         'output_preview': '✨ KẾT QUẢ',

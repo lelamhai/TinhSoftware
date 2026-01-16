@@ -240,7 +240,7 @@ class MainWindowNew(QMainWindow):
         actions_layout.setSpacing(12)
         
         # Change Image Button (modern design with icon)
-        self.btn_change_image = QPushButton("📁  " + self.translator.t('change_image'))
+        self.btn_change_image = QPushButton(self.translator.t('change_image').upper())
         self.btn_change_image.setMinimumHeight(55)
         self.btn_change_image.clicked.connect(self._on_open_image)
         self.btn_change_image.setStyleSheet("""
@@ -265,7 +265,7 @@ class MainWindowNew(QMainWindow):
         actions_layout.addWidget(self.btn_change_image, stretch=1)
         
         # Process Button (Remove Background / Reset)
-        self.btn_process = QPushButton(self.translator.t('remove_background'))
+        self.btn_process = QPushButton(self.translator.t('remove_background').upper())
         self.btn_process.setMinimumHeight(55)
         self.btn_process.setEnabled(False)
         self.btn_process.setProperty('is_reset_mode', False)
@@ -415,7 +415,7 @@ class MainWindowNew(QMainWindow):
         actions_layout = QVBoxLayout()
         
         # Save PNG button only
-        self.btn_save = QPushButton(self.translator.t('save_png'))
+        self.btn_save = QPushButton(self.translator.t('save_png').upper())
         self.btn_save.setMinimumHeight(55)
         self.btn_save.setEnabled(False)
         self.btn_save.setToolTip(self.translator.t('save_png_tooltip'))
@@ -594,7 +594,7 @@ class MainWindowNew(QMainWindow):
             return
         
         self.btn_process.setEnabled(False)
-        self.btn_process.setText(self.translator.t('processing'))
+        self.btn_process.setText(self.translator.t('processing').upper())
         self.status_bar.showMessage(self.translator.t('processing'))
         
         QTimer.singleShot(100, lambda: asyncio.create_task(self._process_image()))
@@ -615,7 +615,7 @@ class MainWindowNew(QMainWindow):
             self.preview_input.fit_to_view()
             
             # Change button to Reset mode
-            self.btn_process.setText(self.translator.t('reset'))
+            self.btn_process.setText(self.translator.t('reset').upper())
             self.btn_process.setProperty('is_reset_mode', True)
             self.btn_process.setStyleSheet("""
                 QPushButton {
@@ -1024,7 +1024,7 @@ class MainWindowNew(QMainWindow):
             self.original_image = None
             
             # Change button back to Remove Background mode
-            self.btn_process.setText(self.translator.t('remove_background'))
+            self.btn_process.setText(self.translator.t('remove_background').upper())
             self.btn_process.setProperty('is_reset_mode', False)
             self.btn_process.setStyleSheet("""
                 QPushButton {
@@ -1103,12 +1103,12 @@ class MainWindowNew(QMainWindow):
         # Process button - check current mode
         is_reset_mode = self.btn_process.property('is_reset_mode')
         if is_reset_mode:
-            self.btn_process.setText(t('reset'))
+            self.btn_process.setText(t('reset').upper())
         else:
-            self.btn_process.setText(t('remove_background'))
+            self.btn_process.setText(t('remove_background').upper())
         
         # Save buttons
-        self.btn_save.setText(t('save_png'))
+        self.btn_save.setText(t('save_png').upper())
         self.btn_save.setToolTip(t('save_png_tooltip'))
         
         # Preview buttons - update tooltips only (using icons)
@@ -1126,9 +1126,7 @@ class MainWindowNew(QMainWindow):
         self.label_feather.setText(f"{self.view_model.settings.feather_pixels} px")
         
         # Background color buttons
-        self.lbl_preview_with.setText(t('preview_with'))
         self.btn_pick_color.setText(t('pick_color'))
-        self.btn_clear_color.setText(t('clear'))
         
         # Checkbox
         self.chk_auto_crop.setText(t('auto_crop'))
